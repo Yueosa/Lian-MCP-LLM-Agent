@@ -1,0 +1,18 @@
+[project]
+name = "lml"
+version = "0.1.0"
+description = "Lian 的 Mcp_LLM 毕设项目"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "Lian", email = "yichengxin7@gmail.com" }
+]
+license = { text = "MIT" }
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "pydantic>=2.0.0",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+    "openai>=1.0.0"
+]

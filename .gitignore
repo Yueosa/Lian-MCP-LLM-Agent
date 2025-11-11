@@ -1,0 +1,8 @@
+# python 中间文件
+__pycache__/
+
+# uv 虚拟环境
+.venv
+
+# 测试文件
+*.test.*
