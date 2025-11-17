@@ -26,7 +26,7 @@ class ConfigLoader:
         """
         self._search_subdirs = search_subdirs
         self._discovered_attrs: Dict[str, str] = {}
-        self.ignore_files = ignore_files or {'pyproject.toml'}
+        self.ignore_files = ignore_files or {'pyproject.toml', '*.example.toml'}
         
         self.search_path = self._init_path(config_path)
         

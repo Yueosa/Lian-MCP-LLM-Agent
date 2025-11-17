@@ -2,6 +2,8 @@ import json
 import toml
 from typing import Any, Dict, List, Optional, Set
 from pathlib import Path
+import fnmatch
+
 
 from .base import ConfigDictWrapper
 
@@ -35,7 +37,7 @@ class DiscoveryLoader:
             
         # 优先查找 toml 文件
         toml_files = list(path.glob("*.toml"))
-        toml_files = [f for f in toml_files if f.name not in self.ignore_files]
+        toml_files = [f for f in toml_files if not any(fnmatch.fnmatch(f.name, pattern) for pattern in self.ignore_files)]
         config_files.extend(toml_files)
         
         # 然后查找 json 文件
