@@ -163,7 +163,7 @@ host    all             all             ::1/128                 md5
 psql -U sakurine -d lml_sql -f /root/sql/LML_SQL.sql
 ```
 
-> [SQL 架构文件 (LML_SQL.sql)](./LML_SQL.sql) (点击跳转)
+> [SQL 架构文件 (LML_SQL.sql)](../sql/LML_SQL.sql) (点击跳转)
 
 #### (6) 配置远程访问
 
