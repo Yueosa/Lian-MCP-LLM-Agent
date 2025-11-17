@@ -42,3 +42,40 @@ class MathTools:
             return f"不支持的单位转换: {from_unit} -> {to_unit}"
         except Exception as e:
             return f"单位转换错误: {str(e)}"
+
+
+# 元数据描述（供 MCP 动态发现）
+TOOL_METADATA = [
+    {
+        "name": "calculate_expression",
+        "description": "计算数学表达式",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "expression": {"type": "string", "description": "数学表达式"}
+            },
+            "required": ["expression"]
+        },
+        "module": "mylib.mcp.tools.math_tools",
+        "class": "MathTools",
+        "method": "calculate_expression",
+        "async": True
+    },
+    {
+        "name": "convert_units",
+        "description": "单位转换",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "value": {"type": "number", "description": "数值"},
+                "from_unit": {"type": "string", "description": "源单位"},
+                "to_unit": {"type": "string", "description": "目标单位"}
+            },
+            "required": ["value", "from_unit", "to_unit"]
+        },
+        "module": "mylib.mcp.tools.math_tools",
+        "class": "MathTools",
+        "method": "convert_units",
+        "async": True
+    }
+]

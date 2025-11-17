@@ -1,11 +1,28 @@
 import json
 import requests
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 import os
 from dotenv import load_dotenv
 from enum import Enum
 
 load_dotenv()
+
+# ANSI 颜色/样式常量
+RESET = "\033[0m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+UNDERLINE = "\033[4m"
+
+FG_RED = "\033[31m"
+FG_GREEN = "\033[32m"
+FG_YELLOW = "\033[33m"
+FG_BLUE = "\033[34m"
+FG_MAGENTA = "\033[35m"
+FG_CYAN = "\033[36m"
+FG_WHITE = "\033[37m"
+
+BG_MAGENTA = "\033[45m"
+BG_CYAN = "\033[46m"
 
 class ModelProvider(Enum):
     DEEPSEEK = "deepseek"
@@ -14,7 +31,7 @@ class ModelProvider(Enum):
     MOONSHOT = "moonshot"
 
 class MCPClient:
-    def __init__(self, mcp_server_url: str = "http://localhost:8000", provider: ModelProvider = ModelProvider.DEEPSEEK):
+    def __init__(self, mcp_server_url: str = "http://localhost:8080", provider: ModelProvider = ModelProvider.DEEPSEEK):
         self.mcp_server_url = mcp_server_url
         self.provider = provider
         self.available_tools = self._load_tools()
@@ -141,7 +158,6 @@ class MCPClient:
     
     def process_user_request(self, user_input: str) -> str:
         """处理用户请求，包括工具调用"""
-        # print(f"用户: {user_input}")
         
         # 第一步：获取LLM的响应
         llm_response = self.chat_with_llm(user_input)
@@ -189,34 +205,41 @@ def main():
     """主对话循环"""
     # 使用DeepSeek
     client = MCPClient(provider=ModelProvider.DEEPSEEK)
-    
-    print("=" * 50)
-    print(f"MCP 客户端已启动 ({client.provider.value})!")
-    print("可用工具:")
+    # 欢迎横幅（简洁、带色）
+    print(BOLD + FG_GREEN + "=" * 50 + RESET)
+    print(FG_YELLOW + f"MCP 客户端已启动 ({client.provider.value})!" + RESET)
+    print(FG_WHITE + "可用工具:" + RESET)
     for tool in client.available_tools:
+        # 工具列表保持普通样式（不强调）
         print(f"  - {tool['name']}: {tool['description']}")
-    print("输入 'quit' 或 '退出' 来结束对话")
-    print("=" * 50)
+    print(BOLD + FG_GREEN + "=" * 50 + RESET)
     
     while True:
         try:
-            user_input = input("\n你: ").strip()
-            
+            # 每轮都显示退出提示（低亮）
+            print(DIM + "(提示) 输入 'quit' 或 '退出' 来结束对话" + RESET)
+            # 带颜色的输入提示：高亮显示名称 Sakurine
+            prompt = f"\n{BOLD}{BG_MAGENTA}{FG_WHITE} Sakurine {RESET}{BOLD}{FG_MAGENTA}: {RESET}"
+            user_input = input(prompt).strip()
+
             if user_input.lower() in ['quit', '退出', 'exit']:
-                print("再见!")
+                print(FG_YELLOW + "再见!" + RESET)
                 break
-            
+
             if not user_input:
                 continue
-            
+
             # 处理用户请求
             response = client.process_user_request(user_input)
-            print(f"\n助手: {response}")
-            
+            # 输出助手回复，强调名字“恋”并使用不同配色
+            assistant_label = f"{BOLD}{BG_CYAN}{FG_WHITE} 恋 {RESET}{BOLD}{FG_CYAN}: {RESET}"
+            print(f"\n{assistant_label}{response}")
+
         except KeyboardInterrupt:
-            print("\n\n再见!")
+            print("\n\n" + FG_YELLOW + "再见!" + RESET)
             break
         except Exception as e:
+            # 错误信息保持普通样式以便阅读
             print(f"\n错误: {e}")
 
 if __name__ == "__main__":

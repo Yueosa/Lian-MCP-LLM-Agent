@@ -1,20 +1,12 @@
-import json
-import asyncio
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from typing import Any, Dict, List, Optional
-import importlib.util
-import sys
-from pathlib import Path
-
-# 导入工具模块
-from .tools.file_tools import FileTools
-from .tools.web_tools import WebTools
-from .tools.math_tools import MathTools
-
+from typing import Any, Dict, List
 
 from .base import ToolCall, ToolCallRequest, ToolResponse
+
+# 动态工具元数据加载器
+from .tools.tools_meta_loader import ToolsMetaLoader
 
 
 app = FastAPI(title="MCP Server", version="1.0.0")
@@ -29,92 +21,38 @@ app.add_middleware(
 
 class MCPTools:
     def __init__(self):
-        self.file_tools = FileTools()
-        self.web_tools = WebTools()
-        self.math_tools = MathTools()
+        # 使用工具元数据加载器发现并实例化工具
+        self.loader = ToolsMetaLoader()
+        self.loader.discover()
+        # 工具元数据（用于 /tools 列表）
+        self.tools_meta = self.loader.tools_meta
+        # 名称 -> 可调用（绑定方法）
+        self.tools_callables = self.loader.callables
         self.custom_tools = {}
     
     def get_tools_list(self) -> List[Dict]:
         """返回所有可用工具列表"""
-        tools = []
-        
-        # 文件工具
-        tools.extend([
-            {
-                "name": "read_file",
-                "description": "读取文件内容",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "file_path": {"type": "string", "description": "文件路径"}
-                    },
-                    "required": ["file_path"]
-                }
-            },
-            {
-                "name": "write_file",
-                "description": "写入文件内容",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "file_path": {"type": "string", "description": "文件路径"},
-                        "content": {"type": "string", "description": "文件内容"}
-                    },
-                    "required": ["file_path", "content"]
-                }
-            }
-        ])
-        
-        # 网络工具
-        tools.extend([
-            {
-                "name": "fetch_webpage",
-                "description": "获取网页内容",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "url": {"type": "string", "description": "网页URL"}
-                    },
-                    "required": ["url"]
-                }
-            }
-        ])
-        
-        # 数学工具
-        tools.extend([
-            {
-                "name": "calculate_expression",
-                "description": "计算数学表达式",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "expression": {"type": "string", "description": "数学表达式"}
-                    },
-                    "required": ["expression"]
-                }
-            }
-        ])
-        
-        return tools
+        # 直接返回加载器格式化后的元数据
+        return self.loader.get_tools_list()
     
     async def execute_tool(self, tool_name: str, arguments: Dict) -> ToolResponse:
         """执行工具调用"""
         try:
-            if tool_name == "read_file":
-                result = await self.file_tools.read_file(arguments["file_path"])
-            elif tool_name == "write_file":
-                result = await self.file_tools.write_file(arguments["file_path"], arguments["content"])
-            elif tool_name == "fetch_webpage":
-                result = await self.web_tools.fetch_webpage(arguments["url"])
-            elif tool_name == "calculate_expression":
-                result = await self.math_tools.calculate_expression(arguments["expression"])
+            # 优先在动态加载的工具中查找
+            if tool_name in self.tools_callables:
+                fn = self.tools_callables[tool_name]
+                # 假设工具方法签名以关键字参数为主，直接解包
+                result = await fn(**arguments)
+            elif tool_name in self.custom_tools:
+                fn = self.custom_tools[tool_name]
+                result = await fn(**arguments)
             else:
                 return ToolResponse(
                     result=None,
                     success=False,
                     error=f"未知工具: {tool_name}"
                 )
-            
+
             return ToolResponse(result=result, success=True)
             
         except Exception as e:
@@ -158,4 +96,13 @@ async def call_single_tool(tool_name: str, arguments: Dict):
     return response.dict()
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # 使用统一配置
+    try:
+        from .config import Config
+        host = Config.MCP.host
+        port = Config.MCP.port
+    except Exception:
+        host = "0.0.0.0"
+        port = 8000
+
+    uvicorn.run(app, host=host, port=port)

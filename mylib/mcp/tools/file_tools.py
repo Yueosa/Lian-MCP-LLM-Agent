@@ -40,3 +40,80 @@ class FileTools:
             return items
         except Exception as e:
             return f"列出目录错误: {str(e)}"
+
+    async def create_directory(self, directory: str, exist_ok: bool = True) -> str:
+        """创建目录，如果已存在则根据 exist_ok 决定行为"""
+        try:
+            path = Path(directory)
+            path.mkdir(parents=True, exist_ok=bool(exist_ok))
+            return f"目录已创建或已存在: {str(path)}"
+        except Exception as e:
+            return f"创建目录错误: {str(e)}"
+
+
+# 元数据描述（供 MCP 动态发现）
+TOOL_METADATA = [
+    {
+        "name": "read_file",
+        "description": "读取文件内容",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_path": {"type": "string", "description": "文件路径"}
+            },
+            "required": ["file_path"]
+        },
+        "module": "mylib.mcp.tools.file_tools",
+        "class": "FileTools",
+        "method": "read_file",
+        "async": True
+    },
+    {
+        "name": "write_file",
+        "description": "写入文件内容",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_path": {"type": "string", "description": "文件路径"},
+                "content": {"type": "string", "description": "文件内容"}
+            },
+            "required": ["file_path", "content"]
+        },
+        "module": "mylib.mcp.tools.file_tools",
+        "class": "FileTools",
+        "method": "write_file",
+        "async": True
+    },
+    {
+        "name": "list_directory",
+        "description": "列出目录内容",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "directory": {"type": "string", "description": "目录路径"}
+            },
+            "required": ["directory"]
+        },
+        "module": "mylib.mcp.tools.file_tools",
+        "class": "FileTools",
+        "method": "list_directory",
+        "async": True
+    }
+    ,
+    {
+        "name": "create_directory",
+        "description": "创建目录（支持递归）",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "directory": {"type": "string", "description": "要创建的目录路径"},
+                "exist_ok": {"type": "boolean", "description": "如果目录存在是否视为成功"}
+            },
+            "required": ["directory"]
+        },
+        "module": "mylib.mcp.tools.file_tools",
+        "class": "FileTools",
+        "method": "create_directory",
+        "async": True
+    }
+]

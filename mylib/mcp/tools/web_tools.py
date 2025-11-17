@@ -34,3 +34,38 @@ class WebTools:
                 "status_code": 0,
                 "error": str(e)
             }
+
+
+# 元数据描述（供 MCP 动态发现）
+TOOL_METADATA = [
+    {
+        "name": "fetch_webpage",
+        "description": "获取网页内容",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "网页URL"}
+            },
+            "required": ["url"]
+        },
+        "module": "mylib.mcp.tools.web_tools",
+        "class": "WebTools",
+        "method": "fetch_webpage",
+        "async": True
+    },
+    {
+        "name": "check_url_status",
+        "description": "检查 URL 状态",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "网页URL"}
+            },
+            "required": ["url"]
+        },
+        "module": "mylib.mcp.tools.web_tools",
+        "class": "WebTools",
+        "method": "check_url_status",
+        "async": True
+    }
+]
