@@ -5,8 +5,10 @@ __pycache__/
 .venv
 
 # 测试文件
-*test*
 
 # 配置文件
 *.toml
 !*.example.toml
+
+# 环境变量文件
+.env
