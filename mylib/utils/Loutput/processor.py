@@ -13,7 +13,8 @@ class StyleProcessor:
     支持的输入类型：
         - 单个字符串 (例如 "red"、"bold") 
         - Enum 成员 (TextEffect / FontColor8 / Background8 等) 
-        - 字符串或 Enum 列表
+        - 整数或数字字符串 (例如 1、"31"、"38;5;196")
+        - 字符串或 Enum 或整数列表
 
     返回值：
         - prefix: 包含 ANSI 前缀 (例如 "\033[1;31m") 的字符串
@@ -40,10 +41,18 @@ class StyleProcessor:
         
         return None
 
+    def _is_numeric_string(self, value: Any) -> bool:
+        """检查是否为数字字符串或整数"""
+        if isinstance(value, int):
+            return True
+        if isinstance(value, str) and value.replace(";", "").isdigit():
+            return True
+        return False
+
     def build_ansi(self,
-                    text_effects: Optional[Union[str, Any, List[Union[str, Any]]]] = None,
-                    font_color: Optional[Union[str, Any]] = None,
-                    background: Optional[Union[str, Any]] = None,
+                    text_effects: Optional[Union[str, int, Any, List[Union[str, int, Any]]]] = None,
+                    font_color: Optional[Union[str, int, Any]] = None,
+                    background: Optional[Union[str, int, Any]] = None,
                     c256_fg: Optional[int] = None,
                     c256_bg: Optional[int] = None,
                     rgb_fg: Optional[tuple] = None,
@@ -51,6 +60,7 @@ class StyleProcessor:
         """将所有样式参数解析为 ANSI 前缀和重置字符串。"""
         ansi_parts: List[str] = []
 
+        # 处理 text_effects
         if isinstance(text_effects, (list, tuple)):
             items = text_effects
         else:
@@ -63,22 +73,24 @@ class StyleProcessor:
             if eff_enum:
                 ansi_parts.append(eff_enum.value)
                 continue
-            if isinstance(eff, str) and eff.isdigit():
-                ansi_parts.append(eff)
+            if self._is_numeric_string(eff):
+                ansi_parts.append(str(eff))
 
+        # 处理 font_color
         if font_color is not None:
             font_enum = self._find_enum(FontColor8, font_color)
             if font_enum:
                 ansi_parts.append(font_enum.value)
-            elif isinstance(font_color, str) and font_color.isdigit():
-                ansi_parts.append(font_color)
+            elif self._is_numeric_string(font_color):
+                ansi_parts.append(str(font_color))
 
+        # 处理 background
         if background is not None:
             bg_enum = self._find_enum(Background8, background)
             if bg_enum:
                 ansi_parts.append(bg_enum.value)
-            elif isinstance(background, str) and background.isdigit():
-                ansi_parts.append(background)
+            elif self._is_numeric_string(background):
+                ansi_parts.append(str(background))
 
         if c256_fg is not None:
             ansi_parts.append(f"38;5;{int(c256_fg)}")
