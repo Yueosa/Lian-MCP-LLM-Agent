@@ -34,9 +34,11 @@ By - Lian - 2025
 
 使用 `psql`, 基本封装已完成 (等待注释与文档)
 
-本地测试 `python ./test_refactoring.py`
+本地测试 `python ./tests/test_refactoring.py`
 
-测试连接 `uv run python -m mylib.sql.sql_test`
+测试连接 `uv run python ./tests/sql_connect.test.py`
+
+文档 [sql.md](mylib/sql/docs/sql.md) (点击跳转)
 
 #### | mcp 包
 
@@ -56,7 +58,9 @@ By - Lian - 2025
 
 用于配置加载, 已经完备
 
-> 争议点: 全局单例模式 | 递归加载文件
+测试: `uv run python ./tests/config.test.py`
+
+文档 [UserGuide.md](mylib/config/docs/UserGuide.md) (点击跳转)
 
 #### | utils 包
 
@@ -64,21 +68,31 @@ By - Lian - 2025
 
 ##### Printer
 
-参考 `mylib.mcp.llm_client` 的实现进行彻底重构
+提供了一个彩色打印方法
 
-后续支持 `background` `bold` 等显示模式
+##### Loutput
+
+基于 `Printer` 完全重构, 目前已经支持:
+
+-   基于 ANSI 的文字效果, 文字色彩, 背景色彩显示
+-   支持 256 色, rgb 24bit 色彩
+
+测试: `uv run python ,/tests/Loutput.test.py`
+
+文档 [Loutput.md](mylib/utils/Loutput/docs/Loutput.md) (点击跳转)
 
 ---
 
 ## 🎓 学术使用声明
 
-**本项目为2025届毕业设计作品**
+**本项目为 2025 届毕业设计作品**
 
 ⚠️ **重要提醒**：
-- 保护期：2025年11月10日 - 2026年1月19日
-- 在此期间，禁止同校同学使用本项目进行毕业设计
-- 禁止任何形式的学术作业提交
-- 详细条款请参阅 LICENSE 文件
+
+-   保护期：2025 年 11 月 10 日 - 2026 年 1 月 19 日
+-   在此期间，禁止同校同学使用本项目进行毕业设计
+-   禁止任何形式的学术作业提交
+-   详细条款请参阅 LICENSE 文件
 
 ---
 
