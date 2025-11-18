@@ -15,7 +15,12 @@ class TextEffect(Enum):
 
 
 class FontColor8(Enum):
-    """前景色 (标准8色)"""
+    """前景色 (8色 + 高亮8色)
+    
+    标准 8 色: BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
+    高亮 8 色: BLACK_HIGH, RED_HIGH, GREEN_HIGH, YELLOW_HIGH, BLUE_HIGH, MAGENTA_HIGH, CYAN_HIGH, WHITE_HIGH
+    """
+    # 标准 8 色
     BLACK = "30"
     RED = "31"
     GREEN = "32"
@@ -24,22 +29,25 @@ class FontColor8(Enum):
     MAGENTA = "35"
     CYAN = "36"
     WHITE = "37"
-
-
-class FontColor8High(Enum):
-    """前景色 (高亮8色)"""
-    BLACK = "90"
-    RED = "91"
-    GREEN = "92"
-    YELLOW = "93"
-    BLUE = "94"
-    MAGENTA = "95"
-    CYAN = "96"
-    WHITE = "97"
+    
+    # 高亮 8 色
+    BLACK_HIGH = "90"
+    RED_HIGH = "91"
+    GREEN_HIGH = "92"
+    YELLOW_HIGH = "93"
+    BLUE_HIGH = "94"
+    MAGENTA_HIGH = "95"
+    CYAN_HIGH = "96"
+    WHITE_HIGH = "97"
 
 
 class Background8(Enum):
-    """背景色 {标准8色}"""
+    """背景色 (8色 + 高亮8色)
+    
+    标准 8 色: BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
+    高亮 8 色: BLACK_HIGH, RED_HIGH, GREEN_HIGH, YELLOW_HIGH, BLUE_HIGH, MAGENTA_HIGH, CYAN_HIGH, WHITE_HIGH
+    """
+    # 标准 8 色
     BLACK = "40"
     RED = "41"
     GREEN = "42"
@@ -48,15 +56,13 @@ class Background8(Enum):
     MAGENTA = "45"
     CYAN = "46"
     WHITE = "47"
-
-
-class Background8High(Enum):
-    """背景色 (高亮8色)"""
-    BLACK = "100"
-    RED = "101"
-    GREEN = "102"
-    YELLOW = "103"
-    BLUE = "104"
-    MAGENTA = "105"
-    CYAN = "106"
-    WHITE = "107"
+    
+    # 高亮 8 色
+    BLACK_HIGH = "100"
+    RED_HIGH = "101"
+    GREEN_HIGH = "102"
+    YELLOW_HIGH = "103"
+    BLUE_HIGH = "104"
+    MAGENTA_HIGH = "105"
+    CYAN_HIGH = "106"
+    WHITE_HIGH = "107"

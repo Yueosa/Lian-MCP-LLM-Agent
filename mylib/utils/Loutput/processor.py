@@ -3,9 +3,7 @@ from typing import Any, List, Optional, Tuple, Union
 from .Enum import (
     TextEffect,
     FontColor8,
-    FontColor8High,
     Background8,
-    Background8High,
 )
 
 
@@ -25,18 +23,21 @@ class StyleProcessor:
     def __init__(self):
         pass
 
-    @staticmethod
-    def _find_enum(enum_cls, name: Any):
+    def _find_enum(self, enum_cls, name: Any):
+        """查找 Enum 成员。支持字符串转为大写后查找，以及 '_high' 后缀自动转为 '_HIGH'。"""
         if name is None:
             return None
         if isinstance(name, enum_cls):
             return name
         if not isinstance(name, str):
             return None
+        
         key = name.upper()
+        
         for item in enum_cls:
             if item.name == key:
                 return item
+        
         return None
 
     def build_ansi(self,
@@ -66,14 +67,14 @@ class StyleProcessor:
                 ansi_parts.append(eff)
 
         if font_color is not None:
-            font_enum = self._find_enum(FontColor8, font_color) or self._find_enum(FontColor8High, font_color)
+            font_enum = self._find_enum(FontColor8, font_color)
             if font_enum:
                 ansi_parts.append(font_enum.value)
             elif isinstance(font_color, str) and font_color.isdigit():
                 ansi_parts.append(font_color)
 
         if background is not None:
-            bg_enum = self._find_enum(Background8, background) or self._find_enum(Background8High, background)
+            bg_enum = self._find_enum(Background8, background)
             if bg_enum:
                 ansi_parts.append(bg_enum.value)
             elif isinstance(background, str) and background.isdigit():

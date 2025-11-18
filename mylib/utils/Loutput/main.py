@@ -16,6 +16,10 @@ class Loutput:
     def __init__(self):
         self.style = StyleProcessor()
 
+    def __call__(self, *args, **kwargs):
+        """直接通过实例呼叫lput方法"""
+        return self.lput(*args, **kwargs)
+
     def lput(
             self,
             *args: object,
