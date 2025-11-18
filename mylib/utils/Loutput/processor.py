@@ -60,7 +60,6 @@ class StyleProcessor:
         """将所有样式参数解析为 ANSI 前缀和重置字符串。"""
         ansi_parts: List[str] = []
 
-        # 处理 text_effects
         if isinstance(text_effects, (list, tuple)):
             items = text_effects
         else:
@@ -76,7 +75,6 @@ class StyleProcessor:
             if self._is_numeric_string(eff):
                 ansi_parts.append(str(eff))
 
-        # 处理 font_color
         if font_color is not None:
             font_enum = self._find_enum(FontColor8, font_color)
             if font_enum:
@@ -84,7 +82,6 @@ class StyleProcessor:
             elif self._is_numeric_string(font_color):
                 ansi_parts.append(str(font_color))
 
-        # 处理 background
         if background is not None:
             bg_enum = self._find_enum(Background8, background)
             if bg_enum:
