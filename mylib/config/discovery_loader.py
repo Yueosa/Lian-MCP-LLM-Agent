@@ -4,8 +4,9 @@ from typing import Any, Dict, List, Optional, Set
 from pathlib import Path
 import fnmatch
 
-
 from .base import ConfigDictWrapper
+
+from mylib.utils import Loutput
 
 
 class DiscoveryLoader:
@@ -17,6 +18,8 @@ class DiscoveryLoader:
         self.loaded_files: List[str] = []
         self.ignore_files = ignore_files
         self.is_single_file_mode = False
+
+        self.lo = Loutput()
         
     def discover(self) -> Dict[str, Any]:
         """自动发现并加载配置文件和配置节"""
@@ -24,7 +27,7 @@ class DiscoveryLoader:
         if path.is_file():
             self.is_single_file_mode = True
             config_files = [path]
-            print(f"📄 单文件模式: 加载 {path.name}\n")
+            self.lo.lput(f"📄 单文件模式: 加载 {path.name}\n", font_color="bule")
         else:
             config_files = self._find_config_files()
         
@@ -39,11 +42,11 @@ class DiscoveryLoader:
         path = Path(self.search_path)
         
         if not path.exists():
-            print(f"⚠️  警告: 搜索路径不存在: {path}")
+            self.lo.lput(f"⚠️  警告: 搜索路径不存在: {path}", font_color="yellow")
             return config_files
         
         if not path.is_dir():
-            print(f"⚠️  警告: 路径不是目录: {path}")
+            self.lo.lput(f"⚠️  警告: 路径不是目录: {path}", font_color="yellow")
             return config_files
             
         toml_files = list(path.glob("*.toml"))
@@ -53,7 +56,7 @@ class DiscoveryLoader:
         json_files = list(path.glob("*.json"))
         config_files.extend(json_files)
         
-        print(f"🔍 找到 {len(config_files)} 个配置文件: {[f.name for f in config_files]}\n")
+        self.lo.lput(f"🔍 找到 {len(config_files)} 个配置文件: {[f.name for f in config_files]}", background="cyan")
         return config_files
     
     def _load_config_file(self, file_path: Path) -> None:
@@ -74,16 +77,19 @@ class DiscoveryLoader:
                 return
                 
             self.loaded_files.append(file_path_str)
-            print(f"✅ 配置文件加载完成: {file_path}")
+            self.lo.lput(f"✅ 配置文件加载完成:", )
+            self.lo.lput(f"{file_path}", font_color="red")
             self._process_config_data(data, source_tag)
             
         except Exception as e:
-            print(f"❌ 加载配置文件失败 {file_path}: {e}")
+            self.lo.lput(f"✅ 配置文件加载失败:", )
+            self.lo.lput(f"{file_path}", font_color="red")
+            self.lo.lput(e, font_color="yellow")
     
     def _process_config_data(self, data: Dict[str, Any], source_tag: str) -> None:
         """处理配置数据"""
         if not isinstance(data, dict):
-            print(f"⚠️  配置文件数据不是字典格式: {source_tag}")
+            self.lo.lput(f"⚠️  配置文件数据不是字典格式: {source_tag}", font_color="black")
             return
             
         for section_name, section_data in data.items():
@@ -94,6 +100,6 @@ class DiscoveryLoader:
                     'source': source_tag,
                     'raw_data': section_data
                 }
-                print(f"  📦 发现配置节: {section_name}")
+                self.lo.lput(f"  📦 发现配置节: {section_name}", font_color="blue")
             else:
-                print(f"  ⚠️  跳过非字典配置节: {section_name} (类型: {type(section_data).__name__})")
+                self.lo.lput(f"  ⚠️  跳过非字典配置节: {section_name} (类型: {type(section_data).__name__})", font_color="magenta")
