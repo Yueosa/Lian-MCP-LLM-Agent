@@ -22,7 +22,7 @@ class Summary:
     
     def _show_header(self) -> None:
         """显示头部信息"""
-        self.printer.cprint("cyan", "🔧 ConfigLoader 配置摘要")
+        self.printer.cprint("cyan", "\n🔧 ConfigLoader 配置摘要")
         self.printer.cprint("magenta", f"📁 搜索路径: {self.parent.search_path}")
     
     def _show_discovery_summary(self) -> None:

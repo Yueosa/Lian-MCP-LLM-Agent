@@ -60,10 +60,20 @@ class ConfigLoader:
             hasattr(self, '_discovered_attrs') and 
             name not in ['config_path', 'search_path', 'summary', 'discovery_loader'] and
             isinstance(value, ConfigDictWrapper)):
-            source = getattr(value, '_path', 'unknown').split('.')[0]
+            source = 'unknown'
+            if hasattr(self, 'discovery_loader') and name in self.discovery_loader.discovered_sections:
+                source = self.discovery_loader.discovered_sections[name].get('source', 'unknown')
             self._discovered_attrs[name] = source
     
     def _init_path(self, config_path: str):
+        """初始化搜索路径，支持文件和目录路径
+        
+        Args:
+            config_path: 配置路径 (文件或目录)，相对路径相对于调用者目录
+            
+        Returns:
+            str: 返回搜索路径 (如果是单文件则返回文件路径，如果是目录则返回目录路径)
+        """
         if config_path:
             if not os.path.isabs(config_path):
                 caller_frame = self._get_caller_frame()
@@ -73,17 +83,25 @@ class ConfigLoader:
             else:
                 resolved_path = config_path
             
+            self.config_path = resolved_path
+            
             if os.path.isfile(resolved_path):
-                self.config_path = resolved_path
-                search_path = os.path.dirname(resolved_path)
-            else:
-                self.config_path = resolved_path
                 search_path = resolved_path
+            elif os.path.isdir(resolved_path):
+                search_path = resolved_path
+            else:
+                if config_path.endswith(('.toml', '.json')):
+                    # 看起来像文件
+                    search_path = resolved_path
+                else:
+                    # 看起来像目录
+                    search_path = resolved_path
         else:
             caller_frame = self._get_caller_frame()
             caller_file = caller_frame.filename
             search_path = os.path.dirname(os.path.abspath(caller_file))
             self.config_path = search_path
+            
         return search_path
 
     def _load_discovery(self) -> None:

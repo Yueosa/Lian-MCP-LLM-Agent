@@ -16,10 +16,17 @@ class DiscoveryLoader:
         self.discovered_sections: Dict[str, Any] = {}
         self.loaded_files: List[str] = []
         self.ignore_files = ignore_files
+        self.is_single_file_mode = False
         
     def discover(self) -> Dict[str, Any]:
         """自动发现并加载配置文件和配置节"""
-        config_files = self._find_config_files()
+        path = Path(self.search_path)
+        if path.is_file():
+            self.is_single_file_mode = True
+            config_files = [path]
+            print(f"📄 单文件模式: 加载 {path.name}\n")
+        else:
+            config_files = self._find_config_files()
         
         for file_path in config_files:
             self._load_config_file(file_path)
@@ -32,19 +39,21 @@ class DiscoveryLoader:
         path = Path(self.search_path)
         
         if not path.exists():
-            print(f"Warning: 搜索路径不存在: {path}")
+            print(f"⚠️  警告: 搜索路径不存在: {path}")
+            return config_files
+        
+        if not path.is_dir():
+            print(f"⚠️  警告: 路径不是目录: {path}")
             return config_files
             
-        # 优先查找 toml 文件
         toml_files = list(path.glob("*.toml"))
         toml_files = [f for f in toml_files if not any(fnmatch.fnmatch(f.name, pattern) for pattern in self.ignore_files)]
         config_files.extend(toml_files)
         
-        # 然后查找 json 文件
         json_files = list(path.glob("*.json"))
         config_files.extend(json_files)
         
-        print(f"找到 {len(config_files)} 个配置文件: {[f.name for f in config_files]}")
+        print(f"🔍 找到 {len(config_files)} 个配置文件: {[f.name for f in config_files]}\n")
         return config_files
     
     def _load_config_file(self, file_path: Path) -> None:
@@ -53,21 +62,20 @@ class DiscoveryLoader:
             file_path_str = str(file_path)
             
             if file_path.suffix == '.toml':
-                # 使用 with open 读取文件
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                 data = toml.loads(content)
-                source_tag = f"toml:{file_path.name}"
+                source_tag = f"toml:{file_path_str}"
             elif file_path.suffix == '.json':
                 with open(file_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                source_tag = f"json:{file_path.name}"
+                source_tag = f"json:{file_path_str}"
             else:
                 return
                 
             self.loaded_files.append(file_path_str)
+            print(f"✅ 配置文件加载完成: {file_path}")
             self._process_config_data(data, source_tag)
-            print(f"✅ 成功加载配置文件: {file_path.name}")
             
         except Exception as e:
             print(f"❌ 加载配置文件失败 {file_path}: {e}")
@@ -80,7 +88,6 @@ class DiscoveryLoader:
             
         for section_name, section_data in data.items():
             if isinstance(section_data, dict):
-                # 包装配置节以便链式访问
                 wrapper = ConfigDictWrapper(section_data, f"{source_tag}.{section_name}")
                 self.discovered_sections[section_name] = {
                     'data': wrapper,
