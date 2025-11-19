@@ -1,4 +1,4 @@
-from typing import Optional, Type, Any, List
+from typing import Optional, Type, Any, List, Dict
 from pydantic import BaseModel, Field
 
 
@@ -19,7 +19,7 @@ class ColumnMeta(BaseModel):
 
     class Config:
         """Pydantic 配置"""
-        frozen = False  # 允许修改实例
+        frozen = False
         use_enum_values = False
 
     def python_type(self) -> Type:
@@ -52,7 +52,7 @@ class TableMeta(BaseModel):
 
     class Config:
         """Pydantic 配置"""
-        frozen = False  # 允许修改实例
+        frozen = False
         use_enum_values = False
 
     def get_allowed_fields(self) -> List[str]:

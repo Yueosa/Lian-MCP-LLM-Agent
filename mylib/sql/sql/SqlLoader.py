@@ -24,10 +24,9 @@ class SqlLoader:
         with open(self.sql_file_path, 'r', encoding='utf-8') as f:
             self.raw_sql = f.read()
 
-        # 分割 CREATE TABLE 语句
         create_table_blocks = re.split(r'(?i)CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS', self.raw_sql)
         
-        for block in create_table_blocks[1:]:  # 跳过第一个空块
+        for block in create_table_blocks[1:]:
             table_meta = self._parse_create_table(block)
             if table_meta:
                 self.tables[table_meta.name] = table_meta
@@ -36,14 +35,12 @@ class SqlLoader:
 
     def _parse_create_table(self, block: str) -> Optional[TableMeta]:
         """解析单个 CREATE TABLE 块"""
-        # 提取表名
         table_name_match = re.match(r'\s*(\w+)\s*\(', block)
         if not table_name_match:
             return None
 
         table_name = table_name_match.group(1)
         
-        # 提取列定义部分（从 ( 到最后一个 )）
         paren_start = block.find('(')
         paren_end = block.rfind(')')
         if paren_start == -1 or paren_end == -1:
@@ -51,14 +48,10 @@ class SqlLoader:
 
         columns_str = block[paren_start + 1:paren_end]
         
-        # 解析每一列
         columns = self._parse_columns(columns_str)
         
-        # 保存原始 CREATE TABLE SQL（用于重建表）
-        # 从块中提取完整的 CREATE TABLE 语句（包含 CREATE TABLE IF NOT EXISTS 前缀）
         raw_create_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({columns_str})"
         
-        # 构造元数据
         table_meta = TableMeta(
             name=table_name,
             columns=columns,
@@ -71,7 +64,6 @@ class SqlLoader:
         """解析列定义字符串"""
         columns = []
         
-        # 按逗号分割，但要考虑括号嵌套
         col_defs = self._split_columns(columns_str)
         
         for col_def in col_defs:
@@ -116,7 +108,6 @@ class SqlLoader:
 
         name = tokens[0]
         
-        # 提取类型：从第二个 token 开始，直到遇到约束关键字
         sql_type_tokens = []
         idx = 1
         constraints = []
@@ -124,7 +115,6 @@ class SqlLoader:
         while idx < len(tokens):
             token_upper = tokens[idx].upper()
             
-            # 检查是否是约束关键字
             if token_upper in ("PRIMARY", "REFERENCES", "DEFAULT", "NOT", "CHECK", "UNIQUE", "CONSTRAINT"):
                 break
             
@@ -133,7 +123,6 @@ class SqlLoader:
 
         sql_type = " ".join(sql_type_tokens)
         
-        # 解析约束
         is_primary_key = False
         is_nullable = True
         default_value = None
@@ -146,7 +135,7 @@ class SqlLoader:
             
             if token_upper == "PRIMARY":
                 is_primary_key = True
-                idx += 2  # 跳过 "PRIMARY KEY"
+                idx += 2
             elif token_upper == "NOT":
                 if idx + 1 < len(tokens) and tokens[idx + 1].upper() == "NULL":
                     is_nullable = False
@@ -163,7 +152,6 @@ class SqlLoader:
                 is_foreign_key = True
                 if idx + 1 < len(tokens):
                     fk_table = tokens[idx + 1]
-                    # 尝试提取列名（如果在括号内）
                     if idx + 2 < len(tokens) and tokens[idx + 2].startswith("("):
                         fk_column_match = re.search(r'\((\w+)\)', tokens[idx + 2])
                         if fk_column_match:
@@ -224,7 +212,6 @@ def get_sql_loader(sql_file_path: Optional[str] = None) -> SqlLoader:
     
     if _loader_instance is None:
         if sql_file_path is None:
-            # 默认路径：同目录下的 LML_SQL.sql
             sql_file_path = Path(__file__).parent / "LML_SQL.sql"
         
         _loader_instance = SqlLoader(str(sql_file_path))
