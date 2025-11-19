@@ -27,7 +27,7 @@ class DiscoveryLoader:
         if path.is_file():
             self.is_single_file_mode = True
             config_files = [path]
-            self.lo.lput(f"📄 单文件模式: 加载 {path.name}\n", font_color="bule")
+            self.lo.lput(f"📄 单文件模式: 加载 {path.name}", background="cyan")
         else:
             config_files = self._find_config_files()
         
