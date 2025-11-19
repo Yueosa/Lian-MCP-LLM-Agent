@@ -12,35 +12,37 @@ By - Lian - 2025
 
 ## 可实现的核心功能
 
-1. 使用 llm 完成代码创建, 修改任务 (练手使用)
+1. **使用 llm 完成代码创建, 修改任务 (练手使用)**
 
     - 关键点: 使用任务流专家管理流程, 代码专家生成代码, 调用 mcp 执行文件写入
 
-2. 使用 llm 自动整理表单 (导师指点)
+2. **[废弃: 不是我热爱的东西]** 使用 llm 自动整理表单 (导师指点)
 
     - 关键点: 使用任务流专家管理流程, 阅读专家分析文件内容, 整理专家操作移动文件
 
-3. llm 自动渗透测试 (导师指点)
+3. **[废弃: 不是我热爱的东西]** llm 自动渗透测试 (导师指点)
 
     - 关键点: 使用任务流专家管理流程, 渗透专家调用工具, 分析结果
 
-4. 接入 `YosaCat` (梦想)
+4. **接入 `YosaCat`**
 
 ---
 
 ## 项目进度
 
-#### | 数据库
+#### | 数据库 --coding--
 
 使用 `psql`, 基本封装已完成 (等待注释与文档)
 
-本地测试 `python ./tests/test_refactoring.py`
+##### 功能测试 `uv run python -m mylib.sql.example_usage`
 
-测试连接 `uv run python ./tests/sql_connect.test.py`
+##### 测试连接 `uv run python ./tests/sql_connect.test.py`
 
 文档 [sql.md](mylib/sql/docs/sql.md) (点击跳转)
 
-#### | mcp 包
+> 已完成封装, 暴露接口, 正在实现`Python`端外键模式
+
+#### | mcp 包 --pedding--
 
 完成了基本的**mcp 服务器**和**llm 客户端**功能 (纯屎山)
 
@@ -54,7 +56,7 @@ By - Lian - 2025
 
 -   llm: 负责 llm_chat 的创建, 生命周期管理
 
-#### | Config 包
+#### | Config 包 --done--
 
 用于配置加载, 已经完备
 
@@ -66,11 +68,11 @@ By - Lian - 2025
 
 ###### 目前实现的包
 
-##### Printer
+##### Printer --done--
 
 提供了一个彩色打印方法
 
-##### Loutput
+##### Loutput --done--
 
 基于 `Printer` 完全重构, 目前已经支持:
 
