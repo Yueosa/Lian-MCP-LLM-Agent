@@ -14,7 +14,7 @@ class memory_log_role(Enum):
     assistant = 'assistant'
     system = 'system'
 
-class memoty_log_memory_type(Enum):
+class memory_log_memory_type(Enum):
     """
     conversation: 对话
     summary: 总结

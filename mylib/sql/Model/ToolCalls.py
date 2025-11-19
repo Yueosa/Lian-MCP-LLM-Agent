@@ -7,7 +7,7 @@ from .Enum import tool_calls_status
 class ToolCall(BaseModel):
     """工具调用数据模型 - Pydantic BaseModel"""
     
-    id: int = Field(..., description="主键 ID")
+    id: int = Field(None, description="主键 ID")
     task_id: int = Field(..., description="关联任务 ID")
     step_id: int = Field(..., description="关联步骤 ID")
     tool_name: str = Field(default="", description="工具名称")

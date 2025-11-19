@@ -6,7 +6,7 @@ from .Enum import task_steps_status
 class TaskStep(BaseModel):
     """任务步骤数据模型 - Pydantic BaseModel"""
     
-    id: int = Field(..., description="主键 ID")
+    id: int = Field(None, description="主键 ID")
     task_id: int = Field(..., description="关联任务 ID")
     step_index: int = Field(default=0, description="步骤序号")
     instruction: str = Field(default="", description="步骤指令")

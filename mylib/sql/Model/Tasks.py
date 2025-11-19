@@ -6,7 +6,7 @@ from .Enum import tasks_status
 class Task(BaseModel):
     """任务数据模型 - Pydantic BaseModel"""
     
-    id: int = Field(..., description="主键 ID")
+    id: int = Field(None, description="主键 ID")
     user_id: str = Field(default="default", description="用户 ID")
     title: str = Field(default="", description="任务标题")
     description: str = Field(default="", description="任务描述")
