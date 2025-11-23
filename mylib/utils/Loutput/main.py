@@ -29,7 +29,7 @@ class Loutput:
             flush: bool = False,
 
             # 样式参数：支持字符串/Enum/列表
-            text_effects: Union[str, List[Union[str, object]], None] = None,
+            text_effects: Union[str, object, List[Union[str, object]], None] = None,
             font_color: Optional[Union[str, object]] = None,
             background: Optional[Union[str, object]] = None,
 

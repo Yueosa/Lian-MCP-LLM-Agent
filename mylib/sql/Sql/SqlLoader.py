@@ -212,7 +212,7 @@ def get_sql_loader(sql_file_path: Optional[str] = None) -> SqlLoader:
     
     if _loader_instance is None:
         if sql_file_path is None:
-            sql_file_path = Path(__file__).parent / "LML_SQL.sql"
+            sql_file_path = str(Path(__file__).parent / "LML_SQL.sql")
         
         _loader_instance = SqlLoader(str(sql_file_path))
         _loader_instance.load()

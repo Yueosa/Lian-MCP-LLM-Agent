@@ -1,8 +1,10 @@
+import base
+
 import psycopg2
 from mylib import ConfigLoader
 
 def get_all_tables():
-    cfg = ConfigLoader(config_path="config/")
+    cfg = ConfigLoader(config_path="../mylib/sql/config/")
     conn = psycopg2.connect(
         host=cfg.Postgresql.host,
         port=cfg.Postgresql.port,
