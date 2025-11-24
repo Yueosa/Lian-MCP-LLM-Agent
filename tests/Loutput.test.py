@@ -36,3 +36,13 @@ out.lput("测试文字", text_effects=TextEffect.BLINK)
 out.lput("测试文字", text_effects="reverse")
 out.lput("测试文字", text_effects="hide")
 out.lput("测试文字", text_effects="STRIKE")
+
+def rgb_fg(r, g, b, text):
+    return f"\033[38;2;{r};{g};{b}m{text}\033[0m"
+
+def rgb_bg(r, g, b, text):
+    return f"\033[48;2;{r};{g};{b}m{text}\033[0m"
+
+print(rgb_fg(255, 0, 0, "真红色"))
+print(rgb_fg(0, 255, 0, "真绿色"))
+print(rgb_fg(0, 0, 255, "真蓝色"))
