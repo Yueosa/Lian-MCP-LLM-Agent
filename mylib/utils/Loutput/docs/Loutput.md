@@ -84,3 +84,24 @@ def lput(
 -   传入三元组 `(r,g,b)`，取值 0–255。例如 `rgb_fg=(255,128,0)`。
 
 ---
+
+## 颜色显示问题？
+
+如果你发现颜色在不同终端/主题下显示不一致（比如黑白色互换），请参考：
+
+📖 **[颜色显示指南 (ColorGuide.md)](ColorGuide.md)**
+
+快速解决方案：
+
+```python
+from mylib.utils.Loutput import Loutput, RGBColor
+
+out = Loutput()
+
+# 使用 RGB 精确颜色（不受终端主题影响）
+out.lput("精确红色", rgb_fg=RGBColor.RED)
+out.lput("成功消息", rgb_fg=RGBColor.SUCCESS)
+```
+
+---
+
