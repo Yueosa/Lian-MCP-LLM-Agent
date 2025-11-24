@@ -24,7 +24,7 @@ out.lput("蓝色背景", background=Background8.BLUE)
 - 日常开发输出
 - 需要适配用户终端主题的应用
 - 通用命令行工具
-
+\2f
 ### 2. RGB 真彩色（精确颜色控制）
 
 ```python
