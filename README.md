@@ -78,10 +78,19 @@ By - Lian - 2025
 
 -   基于 ANSI 的文字效果, 文字色彩, 背景色彩显示
 -   支持 256 色, rgb 24bit 色彩
+-   支持将 ANSI 代码转换为 rgb 真彩色显示
 
-测试: `uv run python ,/tests/Loutput.test.py`
+效果预览: `uv run python ./tests/utils_Loutput/Loutput.test.py`
+对比终端颜色与真彩色: `uv run python ./tests/utils_Loutput/color_comparison.py`
+测试`RGBColor`: `uv run python .tests/utils_Loutput/rgb_quick.py`
 
-文档 [Loutput.md](mylib/utils/Loutput/docs/Loutput.md) (点击跳转)
+文档
+
+[Loutput使用文档](mylib/utils/Loutput/docs/Loutput.md) (点击跳转)
+
+[终端颜色显示指南](mylib/utils/Loutput/docs/ColorGuide.md) (点击跳转)
+
+[RGBColor使用指南](mylib/utils/Loutput/docs/RGBColor.md) (点击跳转)
 
 ---
 
