@@ -27,7 +27,7 @@ class DiscoveryLoader:
         if path.is_file():
             self.is_single_file_mode = True
             config_files = [path]
-            self.lo.lput(f"📄 单文件模式: 加载 {path.name}", background="cyan")
+            self.lo.lput(f"📄 单文件模式: 加载 {path.name}", font_color="cyan")
         else:
             config_files = self._find_config_files()
         
@@ -56,7 +56,7 @@ class DiscoveryLoader:
         json_files = list(path.glob("*.json"))
         config_files.extend(json_files)
         
-        self.lo.lput(f"🔍 找到 {len(config_files)} 个配置文件: {[f.name for f in config_files]}", background="cyan")
+        self.lo.lput(f"🔍 找到 {len(config_files)} 个配置文件: {[f.name for f in config_files]}", font_color="cyan")
         return config_files
     
     def _load_config_file(self, file_path: Path) -> None:

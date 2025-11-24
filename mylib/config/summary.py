@@ -23,7 +23,7 @@ class Summary:
     
     def _show_header(self) -> None:
         """显示头部信息"""
-        self.lo.lput("🔧 ConfigLoader 配置摘要", background="cyan")
+        self.lo.lput("\n🔧 ConfigLoader 配置摘要", font_color="cyan")
         self.lo.lput(f"📁 搜索路径: {self.parent.search_path}", font_color="magenta")
     
     def _show_discovery_summary(self) -> None:
