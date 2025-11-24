@@ -1,26 +1,42 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
+from typing import Optional, List, TYPE_CHECKING
+from pydantic import Field, ConfigDict
 from .Enum import tasks_status
+from .BaseModel import RelationalModel, Relationship
+
+if TYPE_CHECKING:
+    from .TaskSteps import TaskStep
+    from .ToolCalls import ToolCall
 
 
-class Task(BaseModel):
-    """任务数据模型 - Pydantic BaseModel"""
+class Task(RelationalModel):
+    """任务数据模型 - 支持关系的 Pydantic BaseModel"""
+    
+    __table_name__ = "tasks"
     
     id: int = Field(None, description="主键 ID")
     user_id: str = Field(default="default", description="用户 ID")
     title: str = Field(default="", description="任务标题")
-    description: str = Field(default="", description="任务描述")
+    description: Optional[str] = Field(default="", description="任务描述")
     status: tasks_status = Field(default=tasks_status.pending, description="任务状态")
     created_at: datetime = Field(default_factory=datetime.now, description="创建时间")
     updated_at: datetime = Field(default_factory=datetime.now, description="更新时间")
     
-    class Config:
-        """Pydantic 配置"""
-        use_enum_values = False
-        json_encoders = {
-            tasks_status: lambda v: v.value,
-            datetime: lambda v: v.isoformat()
-        }
+    # 关系定义
+    task_steps: Optional[List["TaskStep"]] = Field(
+        default=None, exclude=True, repr=False,
+        description=Relationship("TaskStep", "one_to_many", back_populates="task")
+    )
+    tool_calls: Optional[List["ToolCall"]] = Field(
+        default=None, exclude=True, repr=False,
+        description=Relationship("ToolCall", "one_to_many", back_populates="task")
+    )
+    
+    model_config = ConfigDict(
+        use_enum_values=False,
+        arbitrary_types_allowed=True,
+        validate_assignment=True
+    )
     
     def __repr__(self) -> str:
         """自定义表示"""

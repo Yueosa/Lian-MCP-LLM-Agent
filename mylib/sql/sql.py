@@ -87,7 +87,13 @@ class Sql:
     def __getattr__(self, name: str) -> Callable:
         """动态生成表操作方法
         
-        支持 Create_{表名}, Read_{表名}, Update_{表名}, Delete_{表名} 格式的方法调用
+        支持以下格式的方法调用:
+        - Create_{表名}: 创建记录
+        - Read_{表名}: 读取记录
+        - Read_{表名}_With_Relations: 读取记录并加载关联对象
+        - Update_{表名}: 更新记录
+        - Delete_{表名}: 删除记录
+        - Join_{表1}_{表2}: 执行 JOIN 查询
         
         Args:
             name: 方法名
@@ -98,6 +104,80 @@ class Sql:
         Raises:
             AttributeError: 如果方法名格式不正确或表不存在
         """
+        # 处理 Read_With_Relations 方法
+        if name.startswith('Read_') and '_With_Relations' in name:
+            table_name = name.replace('Read_', '').replace('_With_Relations', '').lower()
+            
+            if table_name not in self._repos:
+                raise AttributeError(f"表 '{table_name}' 不存在或未加载对应的Repo")
+            
+            repo = self._repos[table_name]
+            
+            def read_with_relations(relations: Optional[List[str]] = None, **kwargs):
+                """读取记录并加载关联对象
+                
+                Args:
+                    relations: 要加载的关系列表，None表示加载所有关系
+                    **kwargs: 查询条件
+                    
+                Returns:
+                    包含关联对象的查询结果列表
+                """
+                return repo.read_with_relations(relations=relations, **kwargs)
+            
+            return read_with_relations
+        
+        # 处理 Join 方法
+        if name.startswith('Join_'):
+            # 移除 'Join_' 前缀
+            remaining = name[5:]
+            # 尝试匹配已知的表名
+            table1 = None
+            table2 = None
+            for known_table in self._repos.keys():
+                if remaining.startswith(known_table + '_'):
+                    table1 = known_table
+                    table2 = remaining[len(known_table) + 1:]
+                    if table2 in self._repos:
+                        break
+                    else:
+                        table1 = None
+                        table2 = None
+            
+            if not table1 or not table2:
+                raise AttributeError(f"无法从 '{name}' 解析有效的表名。可用表: {list(self._repos.keys())}")
+            
+            if table1 not in self._repos:
+                raise AttributeError(f"表 '{table1}' 不存在或未加载对应的Repo")
+            
+            repo = self._repos[table1]
+            
+            def join_query(join_condition: str,
+                            select_fields: Optional[List[str]] = None,
+                            join_type: str = "INNER",
+                          **where_conditions):
+                """执行 JOIN 查询
+                
+                Args:
+                    join_condition: JOIN 条件，例如 "tasks.id = task_steps.task_id"
+                    select_fields: 要选择的字段列表
+                    join_type: JOIN 类型 (INNER, LEFT, RIGHT, FULL)
+                    **where_conditions: WHERE 条件
+                    
+                Returns:
+                    查询结果字典列表
+                """
+                return repo.join_query(
+                    join_table=table2,
+                    join_condition=join_condition,
+                    select_fields=select_fields,
+                    join_type=join_type,
+                    **where_conditions
+                )
+            
+            return join_query
+        
+        # 处理标准 CRUD 方法
         if name.startswith(('Create_', 'Read_', 'Update_', 'Delete_')):
             operation, table_name = name.split('_', 1)
             

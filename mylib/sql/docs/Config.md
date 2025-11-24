@@ -4,7 +4,7 @@
 
 ---
 
-##### sql 模块的配置文件默认位置为 `sql/config/`
+##### sql 模块的配置文件默认位置为 `sql/config/sql_config.toml`
 
 #### 以下是最小示例:
 

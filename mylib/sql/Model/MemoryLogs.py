@@ -1,11 +1,14 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import Field
 from .Enum import memory_log_role, memory_log_memory_type
+from .BaseModel import RelationalModel
 
 
-class MemoryLog(BaseModel):
-    """记忆日志数据模型 - Pydantic BaseModel"""
+class MemoryLog(RelationalModel):
+    """记忆日志数据模型 - 支持关系的 Pydantic BaseModel"""
+    
+    __table_name__ = "memory_log"
     
     id: int = Field(None, description="主键 ID")
     user_id: str = Field(default="default", description="用户 ID")

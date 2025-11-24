@@ -55,9 +55,21 @@ class TableMeta(BaseModel):
         frozen = False
         use_enum_values = False
 
+    def get_table_name(self) -> str:
+        """返回表名"""
+        return self.name
+    
     def get_allowed_fields(self) -> List[str]:
-        """返回所有可查询的字段（除了某些特殊字段）"""
-        return [col.name for col in self.columns if not col.is_foreign_key]
+        """返回所有可查询的字段（包括外键字段）
+        
+        排除规则：
+        - 列名以 '--' 开头的（注释列，解析错误产生的）
+        - 列名为空的
+        """
+        return [
+            col.name for col in self.columns 
+            if col.name and not col.name.startswith('--')
+        ]
 
     def get_primary_key(self) -> Optional[str]:
         """返回主键字段名"""

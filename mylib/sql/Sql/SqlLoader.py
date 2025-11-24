@@ -64,10 +64,15 @@ class SqlLoader:
         """解析列定义字符串"""
         columns = []
         
+        # 先移除所有行内注释，再分割
+        columns_str = self._remove_all_inline_comments(columns_str)
+        
         col_defs = self._split_columns(columns_str)
         
         for col_def in col_defs:
             col_def = col_def.strip()
+            
+            # 跳过空行和约束定义
             if not col_def or col_def.upper().startswith("CONSTRAINT"):
                 continue
 
@@ -76,6 +81,39 @@ class SqlLoader:
                 columns.append(col_meta)
 
         return columns
+    
+    def _remove_all_inline_comments(self, text: str) -> str:
+        """移除文本中所有的 SQL 行内注释 (-- 注释)
+        
+        Args:
+            text: SQL 代码文本
+            
+        Returns:
+            移除所有注释后的文本
+        """
+        lines = text.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            comment_pos = line.find('--')
+            if comment_pos != -1:
+                line = line[:comment_pos]
+            cleaned_lines.append(line)
+        return '\n'.join(cleaned_lines)
+    
+    def _remove_inline_comment(self, line: str) -> str:
+        """移除 SQL 行内注释 (-- 注释)
+        
+        Args:
+            line: SQL 代码行
+            
+        Returns:
+            移除注释后的代码
+        """
+        # 查找 -- 注释
+        comment_pos = line.find('--')
+        if comment_pos != -1:
+            return line[:comment_pos]
+        return line
 
     def _split_columns(self, columns_str: str) -> List[str]:
         """按逗号分割列定义，考虑括号嵌套"""
@@ -107,6 +145,10 @@ class SqlLoader:
             return None
 
         name = tokens[0]
+        
+        # 验证列名是否合法（只包含字母、数字、下划线）
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', name):
+            return None
         
         sql_type_tokens = []
         idx = 1

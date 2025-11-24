@@ -20,4 +20,4 @@ class ToolCallsRepo(BaseRepo):
 
     def get_table_name(self) -> str:
         """获取表名"""
-        return self._table_name
+        return self._table_meta.get_table_name() if self._table_meta else self._table_name
