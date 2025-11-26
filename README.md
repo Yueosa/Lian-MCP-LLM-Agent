@@ -54,7 +54,7 @@ By - Lian - 2025
 关系功能测试: `uv run python ./tests/test_relations.py`
 完整功能测试 (学习文档): `uv run python ./tests/test_sql_complete.py`
 
-文档
+**文档**
 
 [SQL 模块使用文档](mylib/sql/docs/sql.md) (点击跳转)
 
@@ -64,19 +64,82 @@ By - Lian - 2025
 
 [配置说明](mylib/sql/docs/Config.md) (点击跳转)
 
-#### | mcp 包 --pedding--
+#### | mcp 包 --done--
 
-完成了基本的**mcp 服务器**和**llm 客户端**功能 (纯屎山)
+基于 FastAPI 实现的工具聚合服务器，提供统一的工具发现与调用接口
 
-测试 `Server`: `uv run python ./main.py server`
+##### 核心功能
 
-测试 `Client`: `uv run python ./main.py client`
+- **工具管理**: 自动发现和加载工具模块，支持热重载
+- **RESTful API**: 提供完整的工具查询、调用接口
+- **元数据提取**: 自动从工具代码中提取函数签名、参数类型、文档说明
+- **工具分类**:
+  - `file_tool`: 文件读写、复制、移动、删除等操作
+  - `dir_tool`: 目录创建、列表、树形展示、统计信息
+  - `web_tool`: HTTP 请求、网页内容提取、HTML/JSON 解析
 
-##### 目前 mcp 库集成了 mcp_server 与 llm_client 的功能, 后续需要分离:
+##### API 端点
 
-- mcp: 负责 mcp_tools 的实现, 元数据提取, 并且与本地知识库进行联动
+- `GET /`: 服务状态
+- `GET /tools`: 获取所有可用工具列表
+- `GET /tools/{tool_name}`: 获取工具详细信息
+- `POST /tools/{tool_name}/call`: 调用指定工具
+- `POST /tools/reload`: 热重载工具元数据
 
-- llm: 负责 llm_chat 的创建, 生命周期管理
+##### 启动方式
+
+**生产模式**（普通启动）:
+
+```bash
+uv run python ./main.py server
+# 自定义地址和端口
+uv run python ./main.py server --host 127.0.0.1 --port 8888
+```
+
+**开发模式**（支持热重载，代码修改自动生效）:
+
+```bash
+./start_server_dev.sh
+# 或自定义参数
+./start_server_dev.sh 127.0.0.1 8888
+```
+
+文档: [MCP Server API 文档](mylib/mcp/README.md) (点击跳转)
+
+#### | llm 包 --done-- (等待 Core 完成后进行重构)
+
+LLM 客户端封装，支持多种模型提供商与工具调用 (目前测试使用 deepseek-chat)
+
+##### 核心功能
+
+- **工具调用**: 自动集成 MCP Server 工具，支持 function calling
+- **连续调用**: 支持工具的多轮连续调用，直到 LLM 返回 `TOOL_CALL_END`
+- **对话管理**: 完整的对话上下文管理和历史记录
+- **双界面**: 终端交互式界面 + Streamlit Web UI
+
+##### 使用方式
+
+**终端客户端**（交互式命令行）:
+
+```bash
+uv run python ./main.py client
+```
+
+**Web UI**（Streamlit 网页界面）:
+
+```bash
+uv run python ./main.py web
+```
+
+Web UI 特性:
+
+- 📱 左右分栏布局：左侧对话，右侧实时日志
+- 🎨 美观的消息气泡样式
+- 📊 可视化工具调用流程
+- 🔄 实时显示工具执行进度
+- 📚 侧边栏显示所有可用工具
+
+环境配置: 需要在 `mylib/llm/llm_config.toml` 填入 `DEEPSEEK_API_KEY` 和 MCP Server 地址
 
 #### | Config 包 --done--
 
@@ -128,7 +191,3 @@ By - Lian - 2025
 - 详细条款请参阅 LICENSE 文件
 
 ---
-
-## 开发之外
-
-记得抽空去读一读 **任务书** 和 **毕业设计报告模板** ! 还要记得 **读论文** !
