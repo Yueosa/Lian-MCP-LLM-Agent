@@ -226,26 +226,6 @@ FastAPI 实现的工具聚合服务，提供统一的工具发现与调用接口
 }
 ```
 
-## 运行
-
-### 使用 venv / pip
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m mylib.mcp.mcp
-```
-
-### 使用 uv（可选）
-
-```bash
-uv venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
-python -m mylib.mcp.mcp
-```
-
 ## 示例
 
 ```bash

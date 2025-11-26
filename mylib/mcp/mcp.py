@@ -23,23 +23,19 @@ class MCPServer:
         Args:
             config_path: 配置文件路径，默认使用 mylib/mcp/config/mcp_config.toml
         """
-        # 加载配置
         if config_path is None:
             config_path = str(Path(__file__).parent / "config" / "mcp_config.toml")
         self._config_loader = ConfigLoader(config_path=config_path)
         self._load_config()
 
-        # 初始化工具加载器
         self._tool_loader = get_tool_loader()
 
-        # 创建 FastAPI 应用
         self.app = FastAPI(
             title="MCP Server",
             version="1.0.0",
             description="Model Context Protocol Server - 提供统一的工具调用接口",
         )
 
-        # 配置 CORS
         self.app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],
@@ -48,14 +44,12 @@ class MCPServer:
             allow_credentials=True,
         )
 
-        # 注册路由
         self._register_routes()
 
     def _load_config(self):
         """从配置文件加载服务器配置"""
         fastapi_cfg = getattr(self._config_loader, "fastapi", None)
         if fastapi_cfg is None:
-            # 使用默认配置
             self.host = "0.0.0.0"
             self.port = 8080
             self.debug = False
@@ -131,23 +125,30 @@ class MCPServer:
             except Exception as exc:  # noqa: BLE001
                 return {"success": False, "error": str(exc)}
 
-    def run(self, host: str = None, port: int = None, **kwargs):
+    def run(self, host: str = None, port: int = None, reload: bool = False, **kwargs):
         """
         运行服务器
 
         Args:
             host: 主机地址，默认使用配置文件中的值
             port: 端口号，默认使用配置文件中的值
+            reload: 是否启用热重载（开发模式）
             **kwargs: 传递给 uvicorn.run 的其他参数
         """
         run_host = host or self.host
         run_port = port or self.port
+
+        if reload:
+            print("⚠️  热重载模式需要使用导入字符串，已自动禁用 reload")
+            print("💡 提示: 如需热重载，请直接运行: uvicorn mylib.mcp.mcp:app --reload")
+            reload = False
 
         uvicorn.run(
             self.app,
             host=run_host,
             port=run_port,
             log_level="debug" if self.debug else "info",
+            reload=reload,
             **kwargs,
         )
 
@@ -164,6 +165,9 @@ class MCPServer:
         return await self._tool_loader.call(tool_name, **kwargs)
 
 
+# 全局应用实例（用于 uvicorn 热重载）
+# 使用方式: uvicorn mylib.mcp.mcp:app --reload --host 0.0.0.0 --port 8080
+app = MCPServer().app
 
 
 if __name__ == "__main__":
