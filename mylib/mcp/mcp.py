@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from mylib.config import ConfigLoader
 
-from .base import ToolCall, ToolCallRequest, ToolResponse
+from .base import ToolResponse
 from .tools import get_tool_loader
 
 
@@ -80,6 +80,19 @@ class MCPServer:
         async def health():
             """健康检查端点"""
             return {"status": "healthy", "service": "mcp-server"}
+        
+        @self.app.get("/help")
+        async def help():
+            """帮助信息端点"""
+            return {
+                "message": "欢迎使用 MCP Server !",
+                "endpoints": {
+                    "/tools": "获取所有可用工具列表",
+                    "/tools/{tool_name}": "获取指定工具的详细信息",
+                    "/tools/{tool_name}/call": "调用单个工具",
+                    "/tools/reload": "热重载工具元数据与绑定",
+                },
+            }
 
         @self.app.get("/tools")
         async def list_tools():
@@ -105,44 +118,18 @@ class MCPServer:
             except Exception as exc:  # noqa: BLE001
                 return ToolResponse(result=None, success=False, error=str(exc)).dict()
 
-        @self.app.post("/tools/call")
-        async def call_tools(request: ToolCallRequest):
-            """批量调用工具"""
-            responses = []
-
-            for tool_call in request.tool_calls:
-                try:
-                    result = await self._tool_loader.call(
-                        tool_call.name, **tool_call.arguments
-                    )
-                    responses.append(
-                        {
-                            "tool": tool_call.name,
-                            "result": result,
-                            "success": True,
-                            "error": None,
-                        }
-                    )
-                except ValueError as exc:
-                    responses.append(
-                        {
-                            "tool": tool_call.name,
-                            "result": None,
-                            "success": False,
-                            "error": str(exc),
-                        }
-                    )
-                except Exception as exc:  # noqa: BLE001
-                    responses.append(
-                        {
-                            "tool": tool_call.name,
-                            "result": None,
-                            "success": False,
-                            "error": str(exc),
-                        }
-                    )
-
-            return {"responses": responses}
+        @self.app.post("/tools/reload")
+        async def reload_tools():
+            """热重载工具元数据与绑定（不重启服务）"""
+            try:
+                self._tool_loader.reload()
+                return {
+                    "success": True,
+                    "tools_count": len(self._tool_loader.tools_meta),
+                    "tools": self._tool_loader.get_tools_list(),
+                }
+            except Exception as exc:  # noqa: BLE001
+                return {"success": False, "error": str(exc)}
 
     def run(self, host: str = None, port: int = None, **kwargs):
         """
@@ -177,16 +164,6 @@ class MCPServer:
         return await self._tool_loader.call(tool_name, **kwargs)
 
 
-# 全局服务器实例（可选）
-_server_instance = None
-
-
-def get_server(config_path: str = None) -> MCPServer:
-    """获取或创建服务器实例"""
-    global _server_instance
-    if _server_instance is None:
-        _server_instance = MCPServer(config_path=config_path)
-    return _server_instance
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Core MCP web tool implementation."""
+"""用于网页抓取的核心 MCP 工具实现"""
 
 from __future__ import annotations
 
@@ -11,6 +11,8 @@ from bs4 import BeautifulSoup
 from mylib import ConfigLoader
 
 from .utils import extract_elements as extract_elements_from_html
+from .utils.http_client import retrieve_document, create_session_kwargs
+from .utils.content_processor import clip_content, slice_lines_from_content
 
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("web.config.toml")
 
@@ -109,15 +111,17 @@ class WebTool:
     # Internal helpers
     # ------------------------------------------------------------------
     def _session_kwargs(self, timeout: Optional[int]) -> Dict[str, object]:
-        return {
-            "timeout": aiohttp.ClientTimeout(total=timeout or self._default_timeout),
-            "headers": {"User-Agent": self._user_agent},
-        }
+        """创建会话参数(使用 utils 函数)"""
+        return create_session_kwargs(
+            timeout=timeout or self._default_timeout,
+            headers={"User-Agent": self._user_agent},
+        )
 
     def _clip_content(self, text: str) -> Tuple[str, bool]:
-        if len(text) <= self._max_content_length:
-            return text, False
-        return text[: self._max_content_length], True
+        """裁剪内容到最大长度(使用 utils 函数)"""
+        clipped = clip_content(text, self._max_content_length)
+        truncated = len(clipped) < len(text)
+        return clipped, truncated
 
     @staticmethod
     def _slice_lines(
@@ -125,17 +129,20 @@ class WebTool:
         start_line: Optional[int],
         end_line: Optional[int],
     ) -> Tuple[str, int, int]:
+        """按行切片内容(使用 utils 函数)"""
         lines = content.split("\n")
         total_lines = len(lines)
         if start_line is None and end_line is None:
             return content, total_lines, total_lines
 
+        # 转换为 0-based 索引
         start_idx = max(0, (start_line or 1) - 1)
         end_idx = end_line or total_lines
         end_idx = min(total_lines, end_idx)
 
-        selected = lines[start_idx:end_idx]
-        return "\n".join(selected), len(selected), total_lines
+        sliced = slice_lines_from_content(content, start_idx, end_idx)
+        lines_returned = len(sliced.split("\n")) if sliced else 0
+        return sliced, lines_returned, total_lines
 
     async def _retrieve_document(
         self,
@@ -145,18 +152,14 @@ class WebTool:
         allow_redirects: bool = True,
         consume_body: bool = True,
     ) -> Dict[str, object]:
+        """检索 HTTP 文档(使用 utils 函数)"""
         async with aiohttp.ClientSession(**self._session_kwargs(timeout)) as session:
-            async with session.get(url, allow_redirects=allow_redirects) as response:
-                body = await response.text() if consume_body else ""
-                if not consume_body:
-                    await response.release()
-                return {
-                    "status": response.status,
-                    "content_type": response.headers.get("content-type", "unknown"),
-                    "content_length": int(response.headers.get("content-length", 0) or 0),
-                    "final_url": str(response.url),
-                    "body": body,
-                }
+            return await retrieve_document(
+                session,
+                url,
+                allow_redirects=allow_redirects,
+                consume_body=consume_body,
+            )
 
     # ------------------------------------------------------------------
     # Public API

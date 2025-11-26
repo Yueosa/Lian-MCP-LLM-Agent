@@ -30,10 +30,6 @@ from .Tool import (
     call_tool
 )
 
-from .file_tool import FileTool, TOOL_METADATA as FILE_TOOL_METADATA
-from .dir_tool import DirTool, TOOL_METADATA as DIR_TOOL_METADATA
-from .web_tool import WebTool, TOOL_METADATA as WEB_TOOL_METADATA
-
 __all__ = [
     # 加载器
     "ToolLoader",
@@ -42,14 +38,13 @@ __all__ = [
     "get_tools_list",
     "get_tool_meta",
     "call_tool",
-    
-    # 工具类
-    "FileTool",
-    "DirTool", 
-    "WebTool",
-    
-    # 元数据
-    "FILE_TOOL_METADATA",
-    "DIR_TOOL_METADATA",
-    "WEB_TOOL_METADATA"
 ]
+
+"""
+工具规范：
+(1) 每个工具模块需在 mylib.mcp.tools 包下创建子模块。
+(2) 每个工具模块需定义 TOOL_METADATA 列表，包含工具元数据字典。
+(3) 每个工具模块需实现对应的类和方法，类名与 TOOL_METADATA 中的 class_name 一致，方法名与 method 一致。
+(4) 工具方法可为同步或异步，需在 TOOL_METADATA 中通过 async_method 指定。
+(5) 工具方法需接受参数字典，并返回结果字典。
+"""
