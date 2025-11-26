@@ -1,0 +1,13 @@
+# MCP Server 配置文件示例
+# 请复制此文件为 mcp_config.toml 并修改
+
+[fastapi]
+# FastAPI 服务器配置
+host = "0.0.0.0"
+port = 8080
+debug = true
+
+[tools]
+# 工具相关配置（可选）
+# 工具会自动从 mylib.mcp.tools 包中发现
+
