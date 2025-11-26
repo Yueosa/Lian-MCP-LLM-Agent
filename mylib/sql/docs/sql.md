@@ -134,7 +134,7 @@ if success:
     print("删除成功")
 ```
 
-### 2. 关系查询 (新功能)
+### 2. 关系查询
 
 #### 定义模型关系
 
@@ -146,9 +146,9 @@ from typing import Optional, List
 
 class Task(RelationalModel):
     __table_name__ = "tasks"
-    
+
     # ... 字段定义 ...
-    
+
     # 关系定义: 一个任务有多个步骤
     task_steps: Optional[List["TaskStep"]] = Relationship(
         "TaskStep", "one_to_many", back_populates="task"
@@ -159,9 +159,9 @@ class Task(RelationalModel):
 
 class TaskStep(RelationalModel):
     __table_name__ = "task_steps"
-    
+
     # ... 字段定义 ...
-    
+
     # 关系定义: 多个步骤属于一个任务
     task: Optional["Task"] = Relationship(
         "Task", "many_to_one", back_populates="task_steps", foreign_key="task_id"
@@ -176,13 +176,13 @@ tasks_with_relations = sql.Read_tasks_With_Relations(user_id="user123")
 
 for task in tasks_with_relations:
     print(f"任务: {task.title}")
-    
+
     # 访问关联的步骤
     steps = task.get_related_object("task_steps")
     if steps:
         for step in steps:
             print(f"  步骤 {step.step_index}: {step.instruction}")
-    
+
     # 访问关联的工具调用
     tool_calls = task.get_related_object("tool_calls")
     if tool_calls:
@@ -261,4 +261,3 @@ results = sql.Join_tasks_task_steps(
 - [配置说明](Config.md)
 
 _(完整文档见原文件，此处为简化版本)_
-
