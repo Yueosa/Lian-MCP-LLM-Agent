@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Lian-MCP-LLM Agent &#x7cfb;&#x7edf;</title>
+    <style>
+      /* From extension vscode.github */
+      /*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+      .vscode-dark img[src$="\#gh-light-mode-only"],
+      .vscode-light img[src$="\#gh-dark-mode-only"],
+      .vscode-high-contrast:not(.vscode-high-contrast-light)
+        img[src$="\#gh-light-mode-only"],
+      .vscode-high-contrast-light img[src$="\#gh-dark-mode-only"] {
+        display: none;
+      }
+    </style>
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css"
+    />
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI",
+          system-ui, "Ubuntu", "Droid Sans", sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+    </style>
+    <style>
+      .task-list-item {
+        list-style-type: none;
+      }
+
+      .task-list-item-checkbox {
+        margin-left: -20px;
+        vertical-align: middle;
+        pointer-events: none;
+      }
+    </style>
+    <style>
+      :root {
+        --color-note: #0969da;
+        --color-tip: #1a7f37;
+        --color-warning: #9a6700;
+        --color-severe: #bc4c00;
+        --color-caution: #d1242f;
+        --color-important: #8250df;
+      }
+    </style>
+    <style>
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --color-note: #2f81f7;
+          --color-tip: #3fb950;
+          --color-warning: #d29922;
+          --color-severe: #db6d28;
+          --color-caution: #f85149;
+          --color-important: #a371f7;
+        }
+      }
+    </style>
+    <style>
+      .markdown-alert {
+        padding: 0.5rem 1rem;
+        margin-bottom: 16px;
+        color: inherit;
+        border-left: 0.25em solid #888;
+      }
+
+      .markdown-alert > :first-child {
+        margin-top: 0;
+      }
+
+      .markdown-alert > :last-child {
+        margin-bottom: 0;
+      }
+
+      .markdown-alert .markdown-alert-title {
+        display: flex;
+        font-weight: 500;
+        align-items: center;
+        line-height: 1;
+      }
+
+      .markdown-alert .markdown-alert-title .octicon {
+        margin-right: 0.5rem;
+        display: inline-block;
+        overflow: visible !important;
+        vertical-align: text-bottom;
+        fill: currentColor;
+      }
+
+      .markdown-alert.markdown-alert-note {
+        border-left-color: var(--color-note);
+      }
+
+      .markdown-alert.markdown-alert-note .markdown-alert-title {
+        color: var(--color-note);
+      }
+
+      .markdown-alert.markdown-alert-important {
+        border-left-color: var(--color-important);
+      }
+
+      .markdown-alert.markdown-alert-important .markdown-alert-title {
+        color: var(--color-important);
+      }
+
+      .markdown-alert.markdown-alert-warning {
+        border-left-color: var(--color-warning);
+      }
+
+      .markdown-alert.markdown-alert-warning .markdown-alert-title {
+        color: var(--color-warning);
+      }
+
+      .markdown-alert.markdown-alert-tip {
+        border-left-color: var(--color-tip);
+      }
+
+      .markdown-alert.markdown-alert-tip .markdown-alert-title {
+        color: var(--color-tip);
+      }
+
+      .markdown-alert.markdown-alert-caution {
+        border-left-color: var(--color-caution);
+      }
+
+      .markdown-alert.markdown-alert-caution .markdown-alert-title {
+        color: var(--color-caution);
+      }
+    </style>
+  </head>
+  <body class="vscode-body vscode-light">
+    <h1 id="lian-mcp-llm-agent-系统">Lian-MCP-LLM Agent 系统</h1>
+    <h5 id="本地多专家智能体调度系统--工具调用协议管理--可扩展知识库">
+      本地多专家智能体调度系统 + 工具调用协议管理 + 可扩展知识库
+    </h5>
+    <p>By - Lian - 2025</p>
+    <hr />
+    <h2 id="项目核心">项目核心</h2>
+    <h4 id="-顶层多专家协作与调度-论文亮点">
+      | 顶层：多专家协作与调度 (论文亮点)
+    </h4>
+    <p>包括：</p>
+    <ol>
+      <li>
+        <p><strong>专家自动生成（Auto-spawn agents）</strong></p>
+        <p>
+          管理员 LLM 会根据任务自动生成 n 个专家 -&gt; 专家拥有角色标签（Role）
+          -&gt; 专家有生命周期（create → run → exit）
+        </p>
+      </li>
+      <li>
+        <p><strong>管理员 LLM 的职责</strong></p>
+        <p>管理员不是执行者，它是调度中心：</p>
+        <p>
+          接收用户输入 -&gt; 分解任务 -&gt; 调度不同专家 -&gt; 路由消息 -&gt;
+          控制哪些专家被杀死、哪些被创建 -&gt; 最后收敛所有专家的输出，返回结果
+        </p>
+      </li>
+      <li>
+        <p><strong>专家间的通信协议（Agent → Agent, Agent → Admin）</strong></p>
+        <p>“需要一个明确的路由、管理规则”</p>
+        <p>例如：</p>
+        <ul>
+          <li>
+            <p>请求类型：询问、协作、评估</p>
+          </li>
+          <li>
+            <p>数据格式：JSON schema</p>
+          </li>
+          <li>
+            <p>ID 标识：session_id、agent_id</p>
+          </li>
+          <li>
+            <p>管理员决定每次迭代的动作</p>
+          </li>
+        </ul>
+      </li>
+    </ol>
+    <hr />
+    <h2 id="开发进度">开发进度</h2>
+    <h4 id="-数据库---done--">| 数据库 --done--</h4>
+    <p>
+      使用 <code>PostgreSQL</code>, 基于 <code>Pydantic</code> 的 ORM 封装已完成
+    </p>
+    <h5 id="sql-模块---done--">SQL 模块 --done--</h5>
+    <p>完全自研的轻量级 ORM 系统, 目前已经支持:</p>
+    <ul>
+      <li>基于 Pydantic 的模型定义和数据验证</li>
+      <li>完整的 CRUD 操作 (Create, Read, Update, Delete)</li>
+      <li>Python 端外键关系抽象 (一对多、多对一、一对一)</li>
+      <li>关系查询 (批量加载关联对象, 避免 N+1 问题)</li>
+      <li>JOIN 多表联合查询 (INNER, LEFT, RIGHT, FULL)</li>
+      <li>连接池管理, 自动重连机制</li>
+      <li>SQL 文件解析, 自动提取表结构元数据</li>
+      <li>枚举类型支持, JSON/JSONB 字段处理</li>
+      <li>级联删除, 事务支持</li>
+    </ul>
+    <h5 id="测试套件">测试套件</h5>
+    <p>
+      连接测试:
+      <code>uv run python ./tests/sql_connect.test.py</code> 关系功能测试:
+      <code>uv run python ./tests/test_relations.py</code> 完整功能测试
+      (学习文档): <code>uv run python ./tests/test_sql_complete.py</code>
+    </p>
+    <p><strong>文档</strong></p>
+    <p><a href="mylib/sql/docs/sql.html">SQL 模块使用文档</a> (点击跳转)</p>
+    <p><a href="mylib/sql/docs/Model.html">数据模型系统文档</a> (点击跳转)</p>
+    <p><a href="mylib/sql/docs/DBRepo.html">仓库层 API 文档</a> (点击跳转)</p>
+    <p><a href="mylib/sql/docs/Config.html">配置说明</a> (点击跳转)</p>
+    <h4 id="-mcp-包---done--">| mcp 包 --done--</h4>
+    <p>基于 FastAPI 实现的工具聚合服务器，提供统一的工具发现与调用接口</p>
+    <h5 id="核心功能">核心功能</h5>
+    <ul>
+      <li><strong>工具管理</strong>: 自动发现和加载工具模块，支持热重载</li>
+      <li><strong>RESTful API</strong>: 提供完整的工具查询、调用接口</li>
+      <li>
+        <strong>元数据提取</strong>:
+        自动从工具代码中提取函数签名、参数类型、文档说明
+      </li>
+      <li>
+        <strong>工具分类</strong>:
+        <ul>
+          <li><code>file_tool</code>: 文件读写、复制、移动、删除等操作</li>
+          <li><code>dir_tool</code>: 目录创建、列表、树形展示、统计信息</li>
+          <li>
+            <code>web_tool</code>: HTTP 请求、网页内容提取、HTML/JSON 解析
+          </li>
+        </ul>
+      </li>
+    </ul>
+    <h5 id="api-端点">API 端点</h5>
+    <ul>
+      <li><code>GET /</code>: 服务状态</li>
+      <li><code>GET /tools</code>: 获取所有可用工具列表</li>
+      <li><code>GET /tools/{tool_name}</code>: 获取工具详细信息</li>
+      <li><code>POST /tools/{tool_name}/call</code>: 调用指定工具</li>
+      <li><code>POST /tools/reload</code>: 热重载工具元数据</li>
+    </ul>
+    <h5 id="启动方式">启动方式</h5>
+    <p><strong>生产模式</strong>（普通启动）:</p>
+    <pre><code class="language-bash">uv run python ./main.py server
+<span class="hljs-comment"># 自定义地址和端口</span>
+uv run python ./main.py server --host 127.0.0.1 --port 8888
+</code></pre>
+    <p><strong>开发模式</strong>（支持热重载，代码修改自动生效）:</p>
+    <pre><code class="language-bash">./start_server_dev.sh
+<span class="hljs-comment"># 或自定义参数</span>
+./start_server_dev.sh 127.0.0.1 8888
+</code></pre>
+    <p>
+      文档: <a href="mylib/mcp/README.html">MCP Server API 文档</a> (点击跳转)
+    </p>
+    <h4 id="-llm-包---done---等待-core-完成后进行重构">
+      | llm 包 --done-- (等待 Core 完成后进行重构)
+    </h4>
+    <p>
+      LLM 客户端封装，支持多种模型提供商与工具调用 (目前测试使用 deepseek-chat)
+    </p>
+    <h5 id="核心功能-1">核心功能</h5>
+    <ul>
+      <li>
+        <strong>工具调用</strong>: 自动集成 MCP Server 工具，支持 function
+        calling
+      </li>
+      <li>
+        <strong>连续调用</strong>: 支持工具的多轮连续调用，直到 LLM 返回
+        <code>TOOL_CALL_END</code>
+      </li>
+      <li><strong>对话管理</strong>: 完整的对话上下文管理和历史记录</li>
+      <li><strong>双界面</strong>: 终端交互式界面 + Streamlit Web UI</li>
+    </ul>
+    <h5 id="使用方式">使用方式</h5>
+    <p><strong>终端客户端</strong>（交互式命令行）:</p>
+    <pre><code class="language-bash">uv run python ./main.py client
+</code></pre>
+    <p><strong>Web UI</strong>（Streamlit 网页界面）:</p>
+    <pre><code class="language-bash">uv run python ./main.py web
+</code></pre>
+    <p>Web UI 特性:</p>
+    <ul>
+      <li>📱 左右分栏布局：左侧对话，右侧实时日志</li>
+      <li>🎨 美观的消息气泡样式</li>
+      <li>📊 可视化工具调用流程</li>
+      <li>🔄 实时显示工具执行进度</li>
+      <li>📚 侧边栏显示所有可用工具</li>
+    </ul>
+    <p>
+      环境配置: 需要在 <code>mylib/llm/llm_config.toml</code> 填入
+      <code>DEEPSEEK_API_KEY</code> 和 MCP Server 地址
+    </p>
+    <h4 id="-config-包---done--">| Config 包 --done--</h4>
+    <p>用于配置加载, 已经完备</p>
+    <p>测试: <code>uv run python ./tests/config.test.py</code></p>
+    <p>
+      文档
+      <a href="mylib/config/docs/UserGuide.html">UserGuide.md</a> (点击跳转)
+    </p>
+    <h4 id="-utils-包">| utils 包</h4>
+    <h6 id="目前实现的包">目前实现的包</h6>
+    <h5 id="printer---done--">Printer --done--</h5>
+    <p>提供了一个彩色打印方法</p>
+    <h5 id="loutput---done--">Loutput --done--</h5>
+    <p>基于 <code>Printer</code> 完全重构, 目前已经支持:</p>
+    <ul>
+      <li>基于 ANSI 的文字效果, 文字色彩, 背景色彩显示</li>
+      <li>支持 256 色, rgb 24bit 色彩</li>
+      <li>支持将 ANSI 代码转换为 rgb 真彩色显示</li>
+    </ul>
+    <p>
+      效果预览:
+      <code>uv run python ./tests/utils_Loutput/Loutput.test.py</code>
+      对比终端颜色与真彩色:
+      <code>uv run python ./tests/utils_Loutput/color_comparison.py</code>
+      测试<code>RGBColor</code>:
+      <code>uv run python .tests/utils_Loutput/rgb_quick.py</code>
+    </p>
+    <p>文档</p>
+    <p>
+      <a href="mylib/utils/Loutput/docs/Loutput.html">Loutput 使用文档</a>
+      (点击跳转)
+    </p>
+    <p>
+      <a href="mylib/utils/Loutput/docs/ColorGuide.html">终端颜色显示指南</a>
+      (点击跳转)
+    </p>
+    <p>
+      <a href="mylib/utils/Loutput/docs/RGBColor.html">RGBColor 使用指南</a>
+      (点击跳转)
+    </p>
+    <hr />
+    <h2 id="-学术使用声明">🎓 学术使用声明</h2>
+    <p><strong>本项目为 2025 届毕业设计作品</strong></p>
+    <p>⚠️ <strong>重要提醒</strong>：</p>
+    <ul>
+      <li>保护期：2025 年 11 月 10 日 - 2026 年 1 月 19 日</li>
+      <li>在此期间，禁止同校同学使用本项目进行毕业设计</li>
+      <li>禁止任何形式的学术作业提交</li>
+      <li>详细条款请参阅 LICENSE 文件</li>
+    </ul>
+    <hr />
+  </body>
+</html>
