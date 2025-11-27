@@ -72,3 +72,49 @@ class tool_calls_status(Enum):
     """
     success = 'success'
     failed = 'failed'
+
+
+# =====================
+# 外键更新策略 on_update
+# =====================
+class on_update(Enum):
+    """
+    CASCADE: 跟随更新
+    SET_NULL: 置为空值
+    RESTRICT: 禁止更新
+    NO_ACTION: 没有操作
+    """
+    CASCADE = 'CASCADE'
+    SET_NULL = 'SET NULL'
+    RESTRICT = 'RESTRICT'
+    NO_ACTION = 'NO ACTION'
+
+
+# =====================
+# 外键删除策略 on_delete
+# =====================
+class on_delete(Enum):
+    """
+    CASCADE: 跟随删除
+    SET_NULL: 置为空值
+    RESTRICT: 禁止删除
+    NO_ACTION: 没有操作
+    """
+    CASCADE = 'CASCADE'
+    SET_NULL = 'SET NULL'
+    RESTRICT = 'RESTRICT'
+    NO_ACTION = 'NO ACTION'
+
+
+# ==========================
+# 外键关系 relationship_type
+# ==========================
+class relationship(Enum):
+    """
+    one_to_one: 一对一
+    one_to_mant: 一对多
+    many_to_one: 多对一
+    """
+    one_to_one = 'one_to_one'
+    one_to_many = 'one_to_many'
+    many_to_one = 'many_to_one'

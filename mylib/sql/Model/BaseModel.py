@@ -5,9 +5,10 @@
 以及在 Python 端进行关联对象的管理和访问。
 """
 
-from typing import Dict, Any, List, Optional, Type, Union, get_type_hints, get_args, get_origin
-from pydantic import BaseModel, Field
-from datetime import datetime
+from typing import Dict, Any, List, Optional
+from pydantic import BaseModel
+
+from .Enum import on_update, on_delete, relationship
 
 
 class ForeignKeyField:
@@ -19,8 +20,8 @@ class ForeignKeyField:
     def __init__(self, 
                     to: str, 
                     related_name: Optional[str] = None,
-                    on_delete: str = "CASCADE",
-                    on_update: str = "CASCADE"):
+                    on_delete: on_update = on_delete.CASCADE,
+                    on_update: on_delete = on_update.CASCADE):
         """初始化外键字段
         
         Args:
@@ -30,7 +31,7 @@ class ForeignKeyField:
             on_update: 更新策略 (CASCADE, SET NULL, RESTRICT, NO ACTION)
         
         Example:
-            task_id: int = ForeignKey("Task", related_name="task_steps")
+            task_id: int = ForeignKeyField("Task", related_name="task_steps")
         """
         self.to = to
         self.related_name = related_name
@@ -46,7 +47,7 @@ class RelationshipField:
     
     def __init__(self, 
                     to: str, 
-                    relationship_type: str = "one_to_many",
+                    relationship_type: relationship = relationship.one_to_many,
                     back_populates: Optional[str] = None,
                     foreign_key: Optional[str] = None):
         """初始化关系字段
@@ -57,13 +58,17 @@ class RelationshipField:
                 - "one_to_one": 一对一
                 - "one_to_many": 一对多
                 - "many_to_one": 多对一
-                - "many_to_many": 多对多 (暂不支持)
             back_populates: 反向关系字段名
             foreign_key: 外键字段名 (对于 many_to_one 关系)
         
         Example:
-            task_steps: Optional[List["TaskStep"]] = Relationship(
+            Task 模型里:
+            task_step = RelationshipField(
                 "TaskStep", "one_to_many", back_populates="task"
+            )
+            TaskStep 模型里:
+            task = RelationshipField(
+                "Task", "many_to_one", back_populates="task_step", foreign_key="task_id"
             )
         """
         self.to = to
