@@ -6,6 +6,8 @@
 
 ##### sql 模块的配置文件默认位置为 `sql/config/sql_config.toml`
 
+> 也可以在实例化 `Sql()` 的时候传入参数 `config_path` 来指定路径
+
 #### 以下是最小示例:
 
 **`TOML`**
@@ -23,13 +25,13 @@ password = "your db user passwd"
 
 ```json
 {
-	"Postgresql": {
-		"host": "your server ip",
-		"port": 5432,
-		"dbname": "your db name",
-		"user": "your db user",
-		"password": "your db user passwd"
-	}
+  "Postgresql": {
+    "host": "your server ip",
+    "port": 5432,
+    "dbname": "your db name",
+    "user": "your db user",
+    "password": "your db user passwd"
+  }
 }
 ```
 
