@@ -13,6 +13,7 @@ class memory_log_role(Enum):
     user = 'user'
     assistant = 'assistant'
     system = 'system'
+    llm = 'llm'
 
 class memory_log_memory_type(Enum):
     """

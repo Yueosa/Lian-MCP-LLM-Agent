@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE IF NOT EXISTS memory_log (
     id SERIAL PRIMARY KEY,
     user_id VARCHAR(64) DEFAULT 'default',
-    role VARCHAR(16) NOT NULL,                       -- user / assistant / system
+    role VARCHAR(16) NOT NULL,                       -- user / assistant / system / llm
     content TEXT NOT NULL,
     embedding VECTOR(1536),                          -- 向量维度可根据模型修改
     memory_type VARCHAR(32) DEFAULT 'conversation',  -- summary / reflection / preference / plan 等
