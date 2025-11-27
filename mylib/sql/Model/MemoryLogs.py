@@ -15,7 +15,7 @@ class MemoryLog(RelationalModel):
     role: memory_log_role = Field(..., description="角色 (user/assistant/system/llm) ")
     content: str = Field(default="", description="内容")
     embedding: Optional[List[float]] = Field(default=None, description="向量嵌入 (pgvector) ")
-    memory_type: memory_log_memory_type = Field(..., description="记忆类型")
+    memory_type: memory_log_memory_type = Field(..., description="记忆类型 (conversation/summary/reflection/preference/plan)")
     importance: float = Field(default=0.5, description="重要性评分 (0-1) ")
     created_at: datetime = Field(default_factory=datetime.now, description="创建时间")
     
