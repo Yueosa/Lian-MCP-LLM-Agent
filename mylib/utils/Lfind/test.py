@@ -1,5 +1,7 @@
+from os import getenv
 from openai import OpenAI
 from typing import List
+from dotenv import load_dotenv
 
 from mylib import Sql, Loutput
 from mylib.utils.Loutput import FontColor8
@@ -7,10 +9,12 @@ from mylib.sql import MemoryLog
 from mylib.sql.Model.Enum import memory_log_role, memory_log_memory_type
 
 
+load_dotenv()
+
 sql = Sql()
 lo = Loutput()
 client = OpenAI(
-    api_key="key",
+    api_key=getenv("QW_EMBEDDING_KEY"),
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
 )
 
@@ -38,7 +42,8 @@ def get_embedding(input: str) -> List[float]:
 def all_in() -> None:
     lo.lput("输入测试文本： ", font_color="cyan", end='')
     message: str = input()
-    sql.Create_memory_log(test_message(message, get_embedding(message)))
+    create_test = sql.Create_memory_log(test_message(message, get_embedding(message)))
+    print(create_test)
     lo.lput("已存入, 正在查询...", font_color=FontColor8.YELLOW)
     print(sql.Read_memory_log(user_id="embedding_test"))
 
