@@ -65,3 +65,60 @@
    - 模型映射的 `PostgreSQL` 表名
 4. **_related_cache**: `Dict[str, Any]`
    - 存储已加载的关联对象
+
+#### 初始化方法
+
+##### (1) \_\_init__(self, **data)
+
+> 初始化模型实例
+
+- **`super().__init__(**data)`**: 调用 **Pydantic** 的 `BaseModel` 初始化逻辑，进行字段验证、默认值填充
+- **`object.__setattr__(self, "_related_cache", {})`**: 直接在实例上设置 `_related_cache` 为一个空字典
+
+##### (2) \_\_init_subclass__(cls, **kwargs)
+
+> 子类初始化时处理外键和关系定义
+
+- **`__init_subclass__`**: 因为当子类被定义 (class X(RelationalModel)) 后，会调用基类的 `__init_subclass__`
+- **`super().__init_subclass__(**kwargs)`**: 调用父类的 `__init_subclass__` ，保证继承链连续
+
+1. **`hasattr(cls)`**: 检查 `__foreign_keys__` 和 `__relationships__`
+    - 如果 **不存在** / **与父类一致** -> 初始化为 **空字典**
+    - 否则 -> `copy()` **父类** / **已有值** (用于多级继承)
+2. **`for field_name in dir(cls)`**
+    - 提取当前类的所有属性名 (如果以 '_' 开头则过滤)
+    - `getattr(cls, field_name) -> field_value`: 取出属性值
+    - `isinstance(field_value, ForeignKeyField | RelationshipField)`: 如果值类型是 **外键字段** / **关系字段**，自动注册到类属性中
+
+> 使用 `dir()` + `getattr()` 的优点是简单，**但是需要小心类属性过多和副作用描述符**
+>
+> 一种更精确的方法是扫描 `__annotations__` / `__dict__` / `model_fields(Pydantic)` 来读取声明字段
+
+#### 类方法
+
+##### (1) _extract_relationships_from_fields(cls)
+
+##### (2) get_table_name(cls) -> str
+
+> 获取表名
+
+- 如果 `cls.__table_name__` 存在 -> 返回
+- 否则 -> 返回 `cls.__name__.lower()` (小写类名)
+
+##### (3) get_foreign_keys(cls) -> Dict[str, ForeignKeyField]
+
+> 获取所有外键定义
+
+- 返回 -> `cls.__foreign_keys__.copy()`
+
+##### (4) get_relationships(cls) -> Dict[str, RelationshipField]
+
+> 获取所有关系定义
+
+- 返回 -> `cls.__relationships__.copy()`
+
+##### (5) get_relationship_fields(cls) -> List[str]
+
+> 获取关系字段名
+
+- 返回 -> list(cls.__relationships__.keys())
