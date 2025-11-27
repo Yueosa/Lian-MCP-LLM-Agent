@@ -1,3 +1,4 @@
+import json
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Union, Dict
 from enum import Enum
@@ -137,6 +138,20 @@ class BaseRepo(ABC):
             instances = []
             for row in results:
                 row_dict = dict(zip(columns, row))
+                
+                # 自动解析 JSON 字符串 (修复 embedding 等字段读取问题)
+                for k, v in row_dict.items():
+                    if isinstance(v, str) and len(v) >= 2 and (
+                        (v.startswith('[') and v.endswith(']')) or 
+                        (v.startswith('{') and v.endswith('}'))
+                    ):
+                        try:
+                            # 尝试解析 JSON
+                            parsed = json.loads(v)
+                            row_dict[k] = parsed
+                        except Exception:
+                            pass
+
                 instance = self._model_class(**row_dict)
                 instances.append(instance)
             
