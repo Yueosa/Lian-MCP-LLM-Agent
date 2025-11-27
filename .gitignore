@@ -12,6 +12,7 @@ __pycache__/
 
 # 环境变量文件
 .env
+!.env.example
 
 # ide配置
 .vscode/
