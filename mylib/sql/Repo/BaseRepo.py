@@ -45,7 +45,7 @@ class BaseRepo(ABC):
         if not self._allowed_get_fields:
             raise ValueError(f"{self.__class__.__name__} 必须设置 _allowed_get_fields 类变量")
 
-    def create(self, model_instance: Union[MemoryLog, Task, TaskStep, ToolCall]) -> Any:
+    def create(self, model_instance: Union[MemoryLog, Task, TaskStep, ToolCall]) -> object:
         """
         创建记录
 
@@ -71,7 +71,6 @@ class BaseRepo(ABC):
             data.pop(field, None)
 
         # 转换枚举和字典类型
-        import json
         for k, v in data.items():
             if isinstance(v, Enum):
                 data[k] = v.value
