@@ -6,25 +6,26 @@ By - Lian - 2025
 
 ---
 
-- [Lian-MCP-LLM Agent 系统](#lian-mcp-llm-agent-系统) - [本地多专家智能体调度系统 + 工具调用协议管理 + 可扩展知识库](#本地多专家智能体调度系统--工具调用协议管理--可扩展知识库)
+- [Lian-MCP-LLM Agent 系统](#lian-mcp-llm-agent-系统)
+        - [本地多专家智能体调度系统 + 工具调用协议管理 + 可扩展知识库](#本地多专家智能体调度系统--工具调用协议管理--可扩展知识库)
   - [项目核心](#项目核心)
-    - [| 顶层：多专家协作与调度 (论文亮点)](#-顶层多专家协作与调度-论文亮点)
+      - [| 顶层：多专家协作与调度 (论文亮点)](#-顶层多专家协作与调度-论文亮点)
   - [开发进度](#开发进度)
-    - [| 数据库 --done--](#-数据库---done--)
-      - [SQL 模块 --done--](#sql-模块---done--)
-      - [测试套件](#测试套件)
-    - [| mcp 包 --done--](#-mcp-包---done--)
-      - [核心功能](#核心功能)
-      - [API 端点](#api-端点)
-      - [启动方式](#启动方式)
-    - [| llm 包 --done-- (等待 Core 完成后进行重构)](#-llm-包---done---等待-core-完成后进行重构)
-      - [核心功能](#核心功能-1)
-      - [使用方式](#使用方式)
-    - [| Config 包 --done--](#-config-包---done--)
-    - [| utils 包](#-utils-包)
-      - [目前实现的包](#目前实现的包)
-      - [Printer --done--](#printer---done--)
-      - [Loutput --done--](#loutput---done--)
+      - [| 数据库 --done--](#-数据库---done--)
+        - [SQL 模块 (refactor...)](#sql-模块-refactor)
+        - [测试套件 (refactor...)](#测试套件-refactor)
+      - [| mcp 包 --done--](#-mcp-包---done--)
+        - [核心功能](#核心功能)
+        - [API 端点](#api-端点)
+        - [启动方式](#启动方式)
+      - [| llm 包 --done-- (等待 Core 完成后进行重构)](#-llm-包---done---等待-core-完成后进行重构)
+        - [核心功能](#核心功能-1)
+        - [使用方式](#使用方式)
+      - [| Config 包 --done--](#-config-包---done--)
+      - [| utils 包](#-utils-包)
+          - [目前实现的包](#目前实现的包)
+        - [Printer --done--](#printer---done--)
+        - [Loutput --done--](#loutput---done--)
   - [🎓 学术使用声明](#-学术使用声明)
 
 ---
@@ -67,7 +68,14 @@ By - Lian - 2025
 
 使用 `PostgreSQL`, 基于 `Pydantic` 的 ORM 封装已完成
 
-##### SQL 模块 --done--
+##### SQL 模块 (refactor...)
+
+> 完全重构中，目前进度:  
+> **[ ]Sql 
+> [x]Model 
+> [ ]Repo 
+> [x]config 
+> [ ]sql**
 
 完全自研的轻量级 ORM 系统, 目前已经支持:
 
@@ -81,7 +89,7 @@ By - Lian - 2025
 - 枚举类型支持, JSON/JSONB 字段处理
 - 级联删除, 事务支持
 
-##### 测试套件
+##### 测试套件 (refactor...)
 
 连接测试: `uv run python ./tests/sql_connect.test.py`
 关系功能测试: `uv run python ./tests/test_relations.py`
@@ -89,13 +97,13 @@ By - Lian - 2025
 
 **文档**
 
-[SQL 模块使用文档](mylib/sql/docs/sql.md) (点击跳转)
+[SQL 模块使用文档](mylib/sql/Docs/sql.md) (点击跳转)
 
-[数据模型系统文档](mylib/sql/docs/Model.md) (点击跳转)
+[数据模型开发者文档](mylib/sql/Docs/Model.md) (点击跳转)
 
-[仓库层 API 文档](mylib/sql/docs/DBRepo.md) (点击跳转)
+[仓库层 API 文档](mylib/sql/Docs/DBRepo.md) (点击跳转)
 
-[配置说明](mylib/sql/docs/Config.md) (点击跳转)
+[配置说明](mylib/sql/Docs/Config.md) (点击跳转)
 
 #### | mcp 包 --done--
 
@@ -104,27 +112,7 @@ By - Lian - 2025
 ##### 核心功能
 
 - **工具管理**: 自动发现和加载工具模块，支持热重载
-- **RESTful API**: 提供完整的工具查询、调用接口- [Lian-MCP-LLM Agent 系统](#lian-mcp-llm-agent-系统) - [本地多专家智能体调度系统 + 工具调用协议管理 + 可扩展知识库](#本地多专家智能体调度系统--工具调用协议管理--可扩展知识库)
-
-  - [项目核心](#项目核心)
-    - [| 顶层：多专家协作与调度 (论文亮点)](#-顶层多专家协作与调度-论文亮点)
-  - [开发进度](#开发进度)
-    - [| 数据库 --done--](#-数据库---done--)
-      - [SQL 模块 --done--](#sql-模块---done--)
-      - [测试套件](#测试套件)
-    - [| mcp 包 --done--](#-mcp-包---done--)
-      - [核心功能](#核心功能)
-      - [API 端点](#api-端点)
-      - [启动方式](#启动方式)
-    - [| llm 包 --done-- (等待 Core 完成后进行重构)](#-llm-包---done---等待-core-完成后进行重构)
-      - [核心功能](#核心功能-1)
-      - [使用方式](#使用方式)
-    - [| Config 包 --done--](#-config-包---done--)
-    - [| utils 包](#-utils-包)
-      - [目前实现的包](#目前实现的包)
-      - [Printer --done--](#printer---done--)
-      - [Loutput --done--](#loutput---done--)
-  - [🎓 学术使用声明](#-学术使用声明)
+- **RESTful API**: 提供完整的工具查询、调用接口
 
 - **元数据提取**: 自动从工具代码中提取函数签名、参数类型、文档说明
 - **工具分类**:
