@@ -1,6 +1,0 @@
-[Postgresql]
-host = "your server ip"
-port = 5432
-dbname = "your db name"
-user = "your db user"
-password = "your db user passwd"
