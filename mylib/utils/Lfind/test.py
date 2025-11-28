@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 
 from mylib import Sql, Loutput
 from mylib.utils.Loutput import FontColor8
-from mylib.sql import MemoryLog
-from mylib.sql.Model.Enum import memory_log_role, memory_log_memory_type
+from mylib.lian_orm import MemoryLog
+from mylib.lian_orm.Model.Enum import memory_log_role, memory_log_memory_type
 
 
 load_dotenv()

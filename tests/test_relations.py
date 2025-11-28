@@ -4,9 +4,9 @@ SQL ORM 关系查询功能测试
 """
 import base
 
-from mylib.sql import Sql
-from mylib.sql.Model import Task, TaskStep, ToolCall
-from mylib.sql.Model.Enum import tasks_status, task_steps_status, tool_calls_status
+from mylib.lian_orm import Sql
+from mylib.lian_orm.Model import Task, TaskStep, ToolCall
+from mylib.lian_orm.Model.Enum import tasks_status, task_steps_status, tool_calls_status
 from mylib.utils import Loutput
 
 # 初始化
