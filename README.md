@@ -11,22 +11,27 @@ By - Lian - 2025
   - [项目核心](#项目核心)
       - [| 顶层：多专家协作与调度 (论文亮点)](#-顶层多专家协作与调度-论文亮点)
   - [开发进度](#开发进度)
-      - [| 数据库 --done--](#-数据库---done--)
-        - [SQL 模块 (refactor...)](#sql-模块-refactor)
+      - [(1) 数据库 --done--](#1-数据库---done--)
+        - [LianORM 模块 (原 SQL 模块) (refactor...)](#lianorm-模块-原-sql-模块-refactor)
         - [测试套件 (refactor...)](#测试套件-refactor)
-      - [| mcp 包 --done--](#-mcp-包---done--)
+      - [(2) mcp 包 --done--](#2-mcp-包---done--)
         - [核心功能](#核心功能)
         - [API 端点](#api-端点)
         - [启动方式](#启动方式)
-      - [| llm 包 --done-- (等待 Core 完成后进行重构)](#-llm-包---done---等待-core-完成后进行重构)
+      - [(3) llm 包 --done-- (等待 Core 完成后进行重构)](#3-llm-包---done---等待-core-完成后进行重构)
         - [核心功能](#核心功能-1)
         - [使用方式](#使用方式)
-      - [| Config 包 --done--](#-config-包---done--)
-      - [| utils 包](#-utils-包)
+      - [(4) Config 包 --done--](#4-config-包---done--)
+      - [(5) Agent 包 --pedding--](#5-agent-包---pedding--)
+      - [(6) Core 包 --pedding--](#6-core-包---pedding--)
+      - [(7) utils 包](#7-utils-包)
           - [目前实现的包](#目前实现的包)
         - [Printer --done--](#printer---done--)
         - [Loutput --done--](#loutput---done--)
+        - [Lstack --done--](#lstack---done--)
+        - [Lfsm --done--](#lfsm---done--)
   - [🎓 学术使用声明](#-学术使用声明)
+
 
 ---
 
@@ -64,20 +69,29 @@ By - Lian - 2025
 
 ## 开发进度
 
-#### | 数据库 --done--
+#### (1) 数据库 --done--
 
-使用 `PostgreSQL`, 基于 `Pydantic` 的 ORM 封装已完成
+使用 `PostgreSQL`, 服务器部署
 
-##### SQL 模块 (refactor...)
+##### LianORM 模块 (原 SQL 模块) (refactor...)
 
-> 完全重构中，目前进度:  
-> **[ ]Sql 
-> [x]Model 
-> [ ]Repo 
-> [x]config 
-> [ ]sql**
+> 架构重构中，将原单体模块拆分为分层架构。目前进度:  
+> **[ ] config** (配置加载)
+> **[x] models** (核心模型定义)
+> **[ ] database** (数据库连接与客户端)
+> **[ ] mapper** (类型转换与映射)
+> **[ ] repository** (仓储层 CRUD)
+> **[ ] schema** (元数据解析与管理)
+> **[ ] orm\.py** (统一入口)
 
-完全自研的轻量级 ORM 系统, 目前已经支持:
+完全自研的轻量级 ORM 系统，采用分层架构设计:
+
+- **Models**: 基于 Pydantic 的模型定义，支持自动发现与关系定义
+- **Schema**: 基于 FSM (有限状态机) 的 SQL 解析器，不依赖数据库连接即可提取表结构
+- **Database**: 封装连接池与原子操作客户端
+- **Repository**: 业务对象 CRUD 的具体实现
+
+目前已经支持:
 
 - 基于 Pydantic 的模型定义和数据验证
 - 完整的 CRUD 操作 (Create, Read, Update, Delete)
@@ -92,20 +106,22 @@ By - Lian - 2025
 ##### 测试套件 (refactor...)
 
 连接测试: `uv run python ./tests/sql_connect.test.py`
-关系功能测试: `uv run python ./tests/test_relations.py`
-完整功能测试 (学习文档): `uv run python ./tests/test_sql_complete.py`
+关系功能测试: `uv run python ./tests/test_relations.py` (失效)
+完整功能测试 (学习文档): `uv run python ./tests/test_sql_complete.py` (失效)
 
 **文档**
 
-[SQL 模块使用文档](mylib/sql/Docs/sql.md) (点击跳转)
+[LianORM 模块使用文档](mylib/lian_orm/docs/README.md) (点击跳转)
 
-[数据模型开发者文档](mylib/sql/Docs/Model.md) (点击跳转)
+[数据模型开发者文档](mylib/lian_orm/docs/models.md) (点击跳转)
 
-[仓库层 API 文档](mylib/sql/Docs/DBRepo.md) (点击跳转)
+[Schema 元数据文档](mylib/lian_orm/docs/schema.md) (点击跳转)
 
-[配置说明](mylib/sql/Docs/Config.md) (点击跳转)
+[仓储层 API 文档](mylib/lian_orm/docs/DBRepo.md) (点击跳转)
 
-#### | mcp 包 --done--
+[配置说明](mylib/lian_orm/docs/Config.md) (点击跳转)
+
+#### (2) mcp 包 --done--
 
 基于 FastAPI 实现的工具聚合服务器，提供统一的工具发现与调用接口
 
@@ -148,7 +164,7 @@ uv run python ./main.py server --host 127.0.0.1 --port 8888
 
 文档: [MCP Server API 文档](mylib/mcp/README.md) (点击跳转)
 
-#### | llm 包 --done-- (等待 Core 完成后进行重构)
+#### (3) llm 包 --done-- (等待 Core 完成后进行重构)
 
 LLM 客户端封装，支持多种模型提供商与工具调用 (目前测试使用 deepseek-chat)
 
@@ -183,7 +199,7 @@ Web UI 特性:
 
 环境配置: 需要在 `mylib/llm/llm_config.toml` 填入 `DEEPSEEK_API_KEY` 和 MCP Server 地址
 
-#### | Config 包 --done--
+#### (4) Config 包 --done--
 
 用于配置加载, 已经完备
 
@@ -191,7 +207,39 @@ Web UI 特性:
 
 文档 [UserGuide.md](mylib/config/docs/UserGuide.md) (点击跳转)
 
-#### | utils 包
+#### (5) Agent 包 --pedding--
+
+定义了智能体的基类与核心行为模式。
+
+##### 设计哲学
+
+> 自我认知是一切的起点
+
+每个 Agent 都必须拥有三个核心要素：
+
+1.  **身份 (Identity)**: 明确角色定位与能力边界
+2.  **目标 (Objectives)**: 当前任务目标与工作范围
+3.  **记忆 (Memory)**: 短期操作记录、长期经验积累与元认知反思
+
+**文档**
+
+[Agent 设计文档](mylib/agent/agent.md) (点击跳转)
+
+#### (6) Core 包 --pedding--
+
+系统的核心枢纽，负责多专家智能体的调度与协作管理。
+
+##### 核心职责 (Admin Agent)
+
+- **任务编排**: 接收用户输入，分解为可执行的子任务序列
+- **专家调度**: 根据任务需求自动生成 (Spawn) 或唤醒特定角色的专家 Agent
+- **生命周期管理**: 控制 Agent 的创建、运行与销毁
+- **消息路由**: 管理 Agent 之间以及 Agent 与 Admin 之间的通信协议
+- **结果收敛**: 汇总各专家的输出，生成最终响应
+
+这是整个系统的"大脑"，实现了论文中提到的多专家协作架构。
+
+#### (7) utils 包
 
 ###### 目前实现的包
 
@@ -218,6 +266,16 @@ Web UI 特性:
 [终端颜色显示指南](mylib/utils/Loutput/docs/ColorGuide.md) (点击跳转)
 
 [RGBColor 使用指南](mylib/utils/Loutput/docs/RGBColor.md) (点击跳转)
+
+##### Lstack --done--
+
+封装的栈结构，提供标准的压栈、出栈、查看栈顶等操作，支持 `len()` 和 `in` 操作符。
+
+##### Lfsm --done--
+
+**Lian Finite State Machine**
+通用的有限状态机基类，集成了 `Lstack` 用于处理嵌套结构。
+只需继承并实现状态处理方法，即可快速构建解析器（如 SQL 解析、文本提取等）。
 
 ---
 
