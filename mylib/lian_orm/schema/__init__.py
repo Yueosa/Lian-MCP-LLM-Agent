@@ -1,5 +1,5 @@
-from .metadata import SchemaMeta, TableMeta, ColumnMeta, IndexMeta, ExtensionMeta
-from .parser import SqlParser
+from .metadata.metadata import SchemaMeta, TableMeta, ColumnMeta, IndexMeta, ExtensionMeta
+from .localfile.parser import SqlParser
 from .manager import SchemaManager
 from .SqlBase import SqlBase
 from .SqlLoader import SqlLoader, get_sql_loader
