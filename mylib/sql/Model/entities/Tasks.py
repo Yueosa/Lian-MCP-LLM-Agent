@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
-from pydantic import Field, ConfigDict
-from .Enum import tasks_status
-from .BaseModel import RelationalModel, Relationship
+from pydantic import Field
+from ..core.Enum import tasks_status
+from ..core.BaseModel import RelationalModel, RelationshipField
 
 if TYPE_CHECKING:
     from .TaskSteps import TaskStep
@@ -14,7 +14,7 @@ class Task(RelationalModel):
     
     __table_name__ = "tasks"
     
-    id: int = Field(None, description="主键 ID")
+    id: Optional[int] = Field(None, description="主键 ID")
     user_id: str = Field(default="default", description="用户 ID")
     title: str = Field(default="", description="任务标题")
     description: Optional[str] = Field(default="", description="任务描述")
@@ -25,23 +25,25 @@ class Task(RelationalModel):
     # 关系定义
     task_steps: Optional[List["TaskStep"]] = Field(
         default=None, exclude=True, repr=False,
-        description=Relationship("TaskStep", "one_to_many", back_populates="task")
+        description=RelationshipField("TaskStep", "one_to_many", back_populates="task")
     )
     tool_calls: Optional[List["ToolCall"]] = Field(
         default=None, exclude=True, repr=False,
-        description=Relationship("ToolCall", "one_to_many", back_populates="task")
+        description=RelationshipField("ToolCall", "one_to_many", back_populates="task")
     )
     
-    model_config = ConfigDict(
-        use_enum_values=False,
-        arbitrary_types_allowed=True,
-        validate_assignment=True
-    )
+    class Config:
+        """Pydantic配置"""
+        use_enum_values = False
+        arbitrary_types_allowed = True
+        validate_assignment = True
     
     def __repr__(self) -> str:
         """自定义表示"""
-        title_preview = self.title[:50] + "..." if len(self.title) > 50 else self.title
         return (
             f"<Task(id={self.id}, user_id='{self.user_id}', "
-            f"status={self.status.value}, title='{title_preview}')>"
+            f"title='{self._truncate(self.title)}', "
+            f"description='{self._truncate(self.description)}', "
+            f"status={self.status.value}, "
+            f"created_at={self.created_at}, updated_at={self.updated_at})>"
         )

@@ -1,8 +1,6 @@
-from .core import (
-    RelationalModel,
-    RelationshipField,
-    T,
-    RelatedData,
+from .BaseModel import RelationalModel, RelationshipField
+from .Type import T, RelatedData
+from .Enum import (
     memory_log_role,
     memory_log_memory_type,
     tasks_status,
@@ -10,27 +8,15 @@ from .core import (
     tool_calls_status,
     on_update,
     on_delete,
-    relationship,
-    auto_initialize_models
+    relationship
 )
-
-from .entities import (
-    Task,
-    TaskStep,
-    ToolCall,
-    MemoryLog
-)
-
-auto_initialize_models()
+from .registry import auto_initialize_models
 
 __all__ = [
-    # Core
     "RelationalModel",
     "RelationshipField",
     "T",
     "RelatedData",
-    
-    # Enums
     "memory_log_role",
     "memory_log_memory_type",
     "tasks_status",
@@ -39,10 +25,5 @@ __all__ = [
     "on_update",
     "on_delete",
     "relationship",
-    
-    # Entities
-    "Task",
-    "TaskStep",
-    "ToolCall",
-    "MemoryLog"
+    "auto_initialize_models"
 ]

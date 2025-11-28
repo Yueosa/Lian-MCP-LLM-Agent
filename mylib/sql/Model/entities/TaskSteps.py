@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 from pydantic import Field, ConfigDict
-from .Enum import task_steps_status
-from .BaseModel import RelationalModel, Relationship
+from ..core.Enum import task_steps_status
+from ..core.BaseModel import RelationalModel, RelationshipField
 
 if TYPE_CHECKING:
     from .Tasks import Task
@@ -14,7 +14,7 @@ class TaskStep(RelationalModel):
     
     __table_name__ = "task_steps"
     
-    id: int = Field(None, description="主键 ID")
+    id: Optional[int] = Field(None, description="主键 ID")
     task_id: int = Field(..., description="关联任务 ID (外键)")
     step_index: int = Field(default=0, description="步骤序号")
     instruction: str = Field(default="", description="步骤指令")
@@ -26,22 +26,26 @@ class TaskStep(RelationalModel):
     # 关系定义
     task: Optional["Task"] = Field(
         default=None, exclude=True, repr=False,
-        description=Relationship("Task", "many_to_one", back_populates="task_steps", foreign_key="task_id")
+        description=RelationshipField("Task", "many_to_one", back_populates="task_steps", foreign_key="task_id")
     )
     tool_calls: Optional[List["ToolCall"]] = Field(
         default=None, exclude=True, repr=False,
-        description=Relationship("ToolCall", "one_to_many", back_populates="task_step")
+        description=RelationshipField("ToolCall", "one_to_many", back_populates="task_step")
     )
     
-    model_config = ConfigDict(
-        use_enum_values=False,
-        arbitrary_types_allowed=True,
+    class Config:
+        """Pydantic配置"""
+        use_enum_values=False
+        arbitrary_types_allowed=True
         validate_assignment=True
-    )
     
     def __repr__(self) -> str:
         """自定义表示"""
         return (
             f"<TaskStep(id={self.id}, task_id={self.task_id}, "
-            f"step_index={self.step_index}, status={self.status.value})>"
+            f"step_index={self.step_index}, "
+            f"instruction='{self._truncate(self.instruction)}', "
+            f"output='{self._truncate(self.output)}', "
+            f"status={self.status.value}, "
+            f"created_at={self.created_at}, updated_at={self.updated_at})>"
         )

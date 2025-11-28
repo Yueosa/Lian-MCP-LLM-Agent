@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import Dict, Any, Optional, TYPE_CHECKING
 from pydantic import Field, ConfigDict
-from .Enum import tool_calls_status
-from .BaseModel import RelationalModel, Relationship
+from ..core.Enum import tool_calls_status
+from ..core.BaseModel import RelationalModel, RelationshipField
 
 if TYPE_CHECKING:
     from .Tasks import Task
@@ -14,7 +14,7 @@ class ToolCall(RelationalModel):
     
     __table_name__ = "tool_calls"
     
-    id: int = Field(None, description="主键 ID")
+    id: Optional[int] = Field(None, description="主键 ID")
     task_id: int = Field(..., description="关联任务 ID (外键)")
     step_id: int = Field(..., description="关联步骤 ID (外键)")
     tool_name: str = Field(default="", description="工具名称")
@@ -33,15 +33,18 @@ class ToolCall(RelationalModel):
         description=Relationship("TaskStep", "many_to_one", back_populates="tool_calls", foreign_key="step_id")
     )
     
-    model_config = ConfigDict(
-        use_enum_values=False,
-        arbitrary_types_allowed=True,
+    class Config:
+        """Pydantic配置"""
+        use_enum_values=False
+        arbitrary_types_allowed=True
         validate_assignment=True
-    )
     
     def __repr__(self) -> str:
         """自定义表示"""
         return (
             f"<ToolCall(id={self.id}, task_id={self.task_id}, step_id={self.step_id}, "
-            f"tool_name='{self.tool_name}', status={self.status.value})>"
+            f"tool_name='{self.tool_name}', "
+            f"arguments={self._truncate(self.arguments)}, "
+            f"response={self._truncate(self.response)}, "
+            f"status={self.status.value}, created_at={self.created_at})>"
         )
