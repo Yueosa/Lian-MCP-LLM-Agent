@@ -1,5 +1,4 @@
 from typing import Generic, List, Any, Dict
-from mylib.utils.Lstack import Lstack
 
 from .type import S, R
 
@@ -7,14 +6,13 @@ class LStateMachine(Generic[S, R]):
     """
     Lian Finite State Machine (Lfsm) 通用基类
     
-    这是一个通用的状态机引擎, 用于驱动基于流 (Stream) 的解析逻辑。
-    它不仅支持字符流 (用于词法分析/Tokenizer) , 也支持对象流 (如 Token 流, 用于语法分析/Parser) 。
+    这是一个通用的状态机引擎，用于驱动基于流（Stream）的解析逻辑。
+    它不仅支持字符流（用于词法分析/Tokenizer），也支持对象流（如 Token 流，用于语法分析/Parser）。
     
     核心功能：
     1. 状态管理：维护当前状态 (S) 并支持状态切换。
     2. 动态分发：自动将处理逻辑分发到 `handle_{state_name}` 方法。
     3. 上下文追踪：内置行号、列号追踪及上下文存储。
-    4. 嵌套支持：集成 Lstack 用于处理括号匹配等嵌套结构。
     
     泛型参数：
     - S: 状态枚举类型 (Enum)
@@ -23,10 +21,9 @@ class LStateMachine(Generic[S, R]):
     
     def __init__(self, initial_state: S):
         self.state: S = initial_state
-        self.stack = Lstack()
         self.buffer: List[str] = []
         self.results: List[R] = []
-        self.context: Dict[str, Any] = {}  # 用于存储上下文信息, 如 dollar_tag
+        self.context: Dict[str, Any] = {}  # 用于存储上下文信息，如 dollar_tag
         self.line = 1
         self.col = 1
     
@@ -37,7 +34,7 @@ class LStateMachine(Generic[S, R]):
 
     def parse(self, content: Any) -> List[R]:
         """解析入口
-        content 可以是字符串, 也可以是 Token 列表
+        content 可以是字符串，也可以是 Token 列表
         """
         self._reset()
         
@@ -64,14 +61,13 @@ class LStateMachine(Generic[S, R]):
         return self.results
 
     def _on_step(self, item: Any):
-        """每一步的回调, 用于更新行号等"""
+        """每一步的回调，用于更新行号等"""
         pass
 
     def _reset(self):
         """重置内部状态"""
         self.buffer = []
         self.results = []
-        self.stack.clear()
         self.context = {}
         self.line = 1
         self.col = 1
@@ -82,10 +78,10 @@ class LStateMachine(Generic[S, R]):
         return i + 1
         
     def on_finish(self):
-        """解析结束时的回调, 可用于处理 buffer 中剩余的内容"""
+        """解析结束时的回调，可用于处理 buffer 中剩余的内容"""
         remaining = self.flush_buffer()
         if remaining:
-            # 默认行为：如果 buffer 还有东西, 尝试作为一个结果发出
+            # 默认行为：如果 buffer 还有东西，尝试作为一个结果发出
             # 子类可以重写此行为
             pass
             
@@ -102,3 +98,7 @@ class LStateMachine(Generic[S, R]):
         res = "".join(self.buffer)
         self.buffer = []
         return res.strip()
+    
+    def error(self, message: str):
+        """抛出错误，子类可重写以提供更多上下文"""
+        raise ValueError(f"StateMachine Error at line {self.line}, col {self.col}: {message}")
