@@ -35,7 +35,7 @@ By - Lian - 2025
 
 ---
 
-## 项目核心
+## 🌟 项目核心
 
 #### | 顶层：多专家协作与调度 (论文亮点)
 
@@ -67,61 +67,32 @@ By - Lian - 2025
 
 ---
 
-## 开发进度
+## 🚀 开发进度
 
-#### (1) 数据库 --done--
+### 💾 (1) 数据库层: LianORM --done--
 
-使用 `PostgreSQL`, 服务器部署
+> 完全自研的轻量级 ORM 系统，采用分层架构设计。
 
-##### LianORM 模块 (原 SQL 模块) (refactor...)
-
-> 架构重构中，将原单体模块拆分为分层架构。目前进度:  
-> **[ ] config** (配置加载)
-> **[x] models** (核心模型定义)
-> **[ ] database** (数据库连接与客户端)
-> **[ ] mapper** (类型转换与映射)
-> **[ ] repository** (仓储层 CRUD)
-> **[ ] schema** (元数据解析与管理)
-> **[ ] orm\.py** (统一入口)
-
-完全自研的轻量级 ORM 系统，采用分层架构设计:
-
-- **Models**: 基于 Pydantic 的模型定义，支持自动发现与关系定义
-- **Schema**: 基于 FSM (有限状态机) 的 SQL 解析器，不依赖数据库连接即可提取表结构
-- **Database**: 封装连接池与原子操作客户端
+**核心架构**:
+- **Schema**: 基于 FSM 的 SQL 解析器，脱离数据库提取元数据
+- **Mapper**: 智能类型转换系统，支持 JSON/Vector 自动映射
 - **Repository**: 业务对象 CRUD 的具体实现
+- **Database**: 封装连接池与原子操作客户端
+- **ORM**: 统一入口与资源管理
 
-目前已经支持:
+**功能特性**:
+- 完整的 CRUD 操作与事务支持
+- 自动化的关联对象加载 (解决 N+1 问题)
+- 复杂的 JOIN 查询支持
+- 完善的类型提示与 Pydantic 集成
 
-- 基于 Pydantic 的模型定义和数据验证
-- 完整的 CRUD 操作 (Create, Read, Update, Delete)
-- Python 端外键关系抽象 (一对多、多对一、一对一)
-- 关系查询 (批量加载关联对象, 避免 N+1 问题)
-- JOIN 多表联合查询 (INNER, LEFT, RIGHT, FULL)
-- 连接池管理, 自动重连机制
-- SQL 文件解析, 自动提取表结构元数据
-- 枚举类型支持, JSON/JSONB 字段处理
-- 级联删除, 事务支持
+**📚 文档中心**:
+- [LianORM 模块使用文档](mylib/lian_orm/docs/README.md)
+- [数据模型 (Models)](mylib/lian_orm/docs/models.md) | [元数据 (Schema)](mylib/lian_orm/docs/schema.md) | [类型映射 (Mapper)](mylib/lian_orm/docs/mapper.md)
+- [仓储层 (Repository)](mylib/lian_orm/docs/repository.md) | [数据库层 (Database)](mylib/lian_orm/docs/database.md) | [顶层接口 (ORM)](mylib/lian_orm/docs/orm.md)
+- [配置说明 (Config)](mylib/lian_orm/docs/config.md)
 
-##### 测试套件 (refactor...)
-
-连接测试: `uv run python ./tests/sql_connect.test.py`
-关系功能测试: `uv run python ./tests/test_relations.py` (失效)
-完整功能测试 (学习文档): `uv run python ./tests/test_sql_complete.py` (失效)
-
-**文档**
-
-[LianORM 模块使用文档](mylib/lian_orm/docs/README.md) (点击跳转)
-
-[数据模型开发者文档](mylib/lian_orm/docs/models.md) (点击跳转)
-
-[Schema 元数据文档](mylib/lian_orm/docs/schema.md) (点击跳转)
-
-[仓储层 API 文档](mylib/lian_orm/docs/DBRepo.md) (点击跳转)
-
-[配置说明](mylib/lian_orm/docs/Config.md) (点击跳转)
-
-#### (2) mcp 包 --done--
+### 🔌 (2) 工具层: MCP Server --done--
 
 基于 FastAPI 实现的工具聚合服务器，提供统一的工具发现与调用接口
 
@@ -164,7 +135,7 @@ uv run python ./main.py server --host 127.0.0.1 --port 8888
 
 文档: [MCP Server API 文档](mylib/mcp/README.md) (点击跳转)
 
-#### (3) llm 包 --done-- (等待 Core 完成后进行重构)
+### 🤖 (3) 交互层: LLM Client --done-- (等待 Core 完成后进行重构)
 
 LLM 客户端封装，支持多种模型提供商与工具调用 (目前测试使用 deepseek-chat)
 
@@ -199,7 +170,7 @@ Web UI 特性:
 
 环境配置: 需要在 `mylib/llm/llm_config.toml` 填入 `DEEPSEEK_API_KEY` 和 MCP Server 地址
 
-#### (4) Config 包 --done--
+### ⚙️ (4) 配置层: Config --done--
 
 用于配置加载, 已经完备
 
@@ -207,7 +178,7 @@ Web UI 特性:
 
 文档 [UserGuide.md](mylib/config/docs/UserGuide.md) (点击跳转)
 
-#### (5) Agent 包 --pedding--
+### 🧠 (5) 智能体层: Agent --pedding--
 
 定义了智能体的基类与核心行为模式。
 
@@ -225,7 +196,7 @@ Web UI 特性:
 
 [Agent 设计文档](mylib/agent/agent.md) (点击跳转)
 
-#### (6) Core 包 --pedding--
+### 🕹️ (6) 核心层: Core --pedding--
 
 系统的核心枢纽，负责多专家智能体的调度与协作管理。
 
@@ -239,43 +210,24 @@ Web UI 特性:
 
 这是整个系统的"大脑"，实现了论文中提到的多专家协作架构。
 
-#### (7) utils 包
+### 🛠️ (7) 工具库: Utils
 
-###### 目前实现的包
+> 包含了一系列自研的基础工具库，为上层模块提供支持。
 
-##### Printer --done--
+#### 🎨 终端美化
+- **Printer**: 基础彩色打印工具。简单轻量，开箱即用，适合快速输出带颜色的调试信息或日志，无需复杂配置。
+- **Loutput**: 高级终端输出库，支持 ANSI/256色/真彩色 (RGB 24bit)，提供色彩降级兼容。内置了丰富的颜色映射表和样式处理器，能够自动检测终端色彩支持能力并进行适配，让终端界面开发像前端一样优雅。
+    - [Loutput 使用文档](mylib/utils/Loutput/docs/Loutput.md) | [终端颜色指南](mylib/utils/Loutput/docs/ColorGuide.md) | [RGBColor 指南](mylib/utils/Loutput/docs/RGBColor.md)
 
-提供了一个彩色打印方法
+#### 🧩 算法与数据结构
+- **Lstack**: 封装的标准栈结构。提供了严谨的压栈、出栈接口，支持迭代器模式，是实现下推自动机和递归算法的基础容器。
+- **Lfsm**: 通用有限状态机 (Finite State Machine) 基类。通过继承方式定义状态与转换规则，逻辑清晰且易于维护，广泛应用于协议解析和流程控制场景。
+- **Lpda**: 下推自动机 (Pushdown Automaton)，支持嵌套结构解析。结合了有限状态机与栈的特性，专门用于处理括号匹配、代码块解析等具有递归特性的语法结构。
 
-##### Loutput --done--
-
-基于 `Printer` 完全重构, 目前已经支持:
-
-- 基于 ANSI 的文字效果, 文字色彩, 背景色彩显示
-- 支持 256 色, rgb 24bit 色彩
-- 支持将 ANSI 代码转换为 rgb 真彩色显示
-
-效果预览: `uv run python ./tests/utils_Loutput/Loutput.test.py`
-对比终端颜色与真彩色: `uv run python ./tests/utils_Loutput/color_comparison.py`
-测试`RGBColor`: `uv run python .tests/utils_Loutput/rgb_quick.py`
-
-文档
-
-[Loutput 使用文档](mylib/utils/Loutput/docs/Loutput.md) (点击跳转)
-
-[终端颜色显示指南](mylib/utils/Loutput/docs/ColorGuide.md) (点击跳转)
-
-[RGBColor 使用指南](mylib/utils/Loutput/docs/RGBColor.md) (点击跳转)
-
-##### Lstack --done--
-
-封装的栈结构，提供标准的压栈、出栈、查看栈顶等操作，支持 `len()` 和 `in` 操作符。
-
-##### Lfsm --done--
-
-**Lian Finite State Machine**
-通用的有限状态机基类，集成了 `Lstack` 用于处理嵌套结构。
-只需继承并实现状态处理方法，即可快速构建解析器（如 SQL 解析、文本提取等）。
+#### 📝 文本处理
+- **Ltokenizer**: 基于状态机的通用分词器基类。支持流式处理和位置追踪（行号/列号），能够高效地将原始文本转换为结构化的 Token 序列，为解析器提供标准输入。
+- **Lparser**: 基于 LPDA 的通用解析器基类，用于构建复杂的语法分析器。提供了灵活的解析钩子和上下文管理机制，开发者只需关注语法规则的定义，即可快速构建出功能强大的自定义语言解析器。
+- **Lfind**: 向量嵌入 (Embedding) 工具封装，用于知识库检索。集成了主流的 Embedding 模型接口，提供了开箱即用的文本向量化和相似度匹配功能，是实现 RAG（检索增强生成）系统的核心组件。
 
 ---
 
