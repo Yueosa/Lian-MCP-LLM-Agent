@@ -1,6 +1,6 @@
 from typing import Optional, Callable, Any
 from .localfile.parser import SqlParser
-from .metadata.metadata import SchemaMeta, TableMeta, ColumnMeta
+from .metadata import SchemaMeta, TableMeta, ColumnMeta
 
 class SchemaManager:
     """Schema管理器, 提供对Schema元数据的访问接口"""

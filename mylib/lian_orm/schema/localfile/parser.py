@@ -3,7 +3,8 @@ from typing import List, Optional, Any
 from mylib.utils.Lparser import LParserBase
 from mylib.utils.Ltokenizer import LToken
 from .tokenizer import SqlTokenType, SqlTokenizer
-from mylib.lian_orm.schema.metadata.metadata import TableMeta, ColumnMeta, SchemaMeta, IndexMeta, ExtensionMeta
+from ..metadata import TableMeta, ColumnMeta, SchemaMeta, IndexMeta, ExtensionMeta
+
 
 class SqlParserState(Enum):
     IDLE = auto()

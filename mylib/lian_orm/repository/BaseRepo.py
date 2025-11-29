@@ -5,7 +5,7 @@ from ..database.client import DatabaseClient
 from ..mapper.converter import DataConverter
 from ..models.core.BaseModel import RelationalModel
 from ..models.core.Type import T
-from ..schema.SqlBase import TableMeta
+from ..schema.metadata import TableMeta
 
 
 class BaseRepo(ABC, Generic[T]):
@@ -23,22 +23,23 @@ class BaseRepo(ABC, Generic[T]):
     _model_class: Optional[Type[T]] = None
     _allowed_get_fields = []
     CREATE_TABLE_SQL = None
-    _table_meta: Optional[TableMeta] = None
-
+    
     # 操作权限控制
     _can_create = True
     _can_read = True
     _can_update = True
     _can_delete = True
 
-    def __init__(self, db_client: DatabaseClient):
+    def __init__(self, db_client: DatabaseClient, table_meta: Optional[TableMeta] = None):
         """
         初始化仓库
 
         Args:
             db_client: 数据库客户端实例
+            table_meta: 表元数据
         """
         self.db = db_client
+        self._table_meta = table_meta
         self._verify()
 
     def _verify(self) -> None:

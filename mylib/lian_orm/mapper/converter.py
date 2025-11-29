@@ -1,7 +1,8 @@
 import json
 from enum import Enum
 from typing import Any, Dict, Optional
-from ..schema.SqlBase import TableMeta
+from ..schema.metadata import TableMeta
+from .types import SQLTypeMapper
 
 class DataConverter:
     @staticmethod
@@ -16,13 +17,14 @@ class DataConverter:
             
             # 2. Handle JSON/Vector based on metadata
             if table_meta:
-                col_meta = table_meta.get_column(k)
-                if col_meta and (col_meta.is_json_type or col_meta.is_vector_type):
-                    if not isinstance(v, str):
-                        converted[k] = json.dumps(v)
-                    else:
-                        converted[k] = v
-                    continue
+                col_meta = table_meta.columns.get(k)
+                if col_meta:
+                    if SQLTypeMapper.is_json_type(col_meta.data_type) or SQLTypeMapper.is_vector_type(col_meta.data_type):
+                        if not isinstance(v, str):
+                            converted[k] = json.dumps(v)
+                        else:
+                            converted[k] = v
+                        continue
 
             # 3. Fallback for dicts
             if isinstance(v, dict):
@@ -42,9 +44,10 @@ class DataConverter:
             
             # 1. Metadata check
             if table_meta:
-                col_meta = table_meta.get_column(k)
-                if col_meta and (col_meta.is_json_type or col_meta.is_vector_type):
-                    should_parse = True
+                col_meta = table_meta.columns.get(k)
+                if col_meta:
+                    if SQLTypeMapper.is_json_type(col_meta.data_type) or SQLTypeMapper.is_vector_type(col_meta.data_type):
+                        should_parse = True
             
             # 2. Fallback check
             if not should_parse and isinstance(v, str) and len(v) >= 2:

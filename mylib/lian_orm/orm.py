@@ -6,7 +6,7 @@ from pathlib import Path
 from mylib.config import ConfigLoader
 from .database.pool import PostgreSQLConnectionPool
 from .database.client import DatabaseClient
-from .schema.SqlLoader import get_sql_loader
+from .schema.manager import SchemaManager
 
 
 class Sql:
@@ -58,8 +58,9 @@ class Sql:
         # 创建数据库客户端
         self.db_client = DatabaseClient(self.connection_pool)
         
-        # 加载SQL定义
-        self.sql_loader = get_sql_loader()
+        # 加载Schema
+        sql_file_path = Path(__file__).parent / "schema" / "localfile" / "LML_SQL.sql"
+        self.schema_manager = SchemaManager(str(sql_file_path))
         
         # 存储已加载的Repo实例
         self._repos: Dict[str, Any] = {}
@@ -83,9 +84,19 @@ class Sql:
                 
                 for name, cls in inspect.getmembers(module, inspect.isclass):
                     if name == repo_name and hasattr(cls, 'get_table_name'):
-                        # 传入 db_client 而不是 connection_pool
-                        instance = cls(self.db_client)
-                        table_name = instance.get_table_name()
+                        # 获取表元数据
+                        table_name = cls(self.db_client).get_table_name() # 临时实例化获取表名，或者改为类方法
+                        # 更好的方式是实例化一次
+                        
+                        # 尝试从 SchemaManager 获取 TableMeta
+                        table_meta = None
+                        try:
+                            table_meta = self.schema_manager.get_table(table_name)
+                        except ValueError:
+                            pass
+                        
+                        # 传入 db_client 和 table_meta
+                        instance = cls(self.db_client, table_meta=table_meta)
                         self._repos[table_name] = instance
             except ImportError as e:
                 print(f"Failed to load repo {repo_name}: {e}")
