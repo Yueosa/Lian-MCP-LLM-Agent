@@ -7,7 +7,7 @@ class Lstack:
 
     def __len__(self) -> int:
         """支持 len()"""
-        return self.size()
+        return self.size()  
     
     def __str__(self) -> List[Any]:
         """支持 str()"""
