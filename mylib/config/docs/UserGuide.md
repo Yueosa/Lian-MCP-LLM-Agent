@@ -62,7 +62,7 @@ config.show_config()
 
 #### 自动发现模式
 
-最简单的方式，自动扫描脚本所在目录的所有配置文件：
+最简单的方式，自动扫描脚本所在目录 (ConfigLoader实例化发生的位置) 的所有配置文件：
 
 ```python
 from config import ConfigLoader
