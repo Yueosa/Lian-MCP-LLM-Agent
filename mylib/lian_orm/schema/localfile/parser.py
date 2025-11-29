@@ -1,324 +1,308 @@
-import re
 from enum import Enum, auto
-from typing import List, Optional
+from typing import List, Optional, Any
+from mylib.utils.Lparser import LParserBase
+from mylib.utils.Ltokenizer import LToken
+from .tokenizer import SqlTokenType, SqlTokenizer
+from mylib.lian_orm.schema.metadata.metadata import TableMeta, ColumnMeta, SchemaMeta, IndexMeta, ExtensionMeta
 
-from mylib.utils import LStateMachine
-
-from ..metadata.metadata import SchemaMeta, TableMeta, ColumnMeta, IndexMeta, ExtensionMeta
-
-
-class State(Enum):
-    NORMAL = auto()          # 普通扫描
-    SINGLE_QUOTE = auto()    # ' ... '
-    DOUBLE_QUOTE = auto()    # " ... "
-    LINE_COMMENT = auto()    # -- ... \n
-    BLOCK_COMMENT = auto()   # /* ... */
-    DOLLAR_QUOTE = auto()    # $$ 或 $tag$
-
-
-class SqlSplitter(LStateMachine[State, str]):
-    """基于 LStateMachine 的 SQL 语句分割器"""
+class SqlParserState(Enum):
+    IDLE = auto()
     
+    # 表相关状态
+    EXPECT_TABLE_NAME = auto()
+    EXPECT_TABLE_OPEN_PAREN = auto()
+    INSIDE_TABLE_BODY = auto()
+    
+    # 索引相关状态
+    EXPECT_INDEX_NAME = auto()
+    EXPECT_INDEX_ON = auto()
+    EXPECT_INDEX_TABLE = auto()
+    EXPECT_INDEX_USING = auto()
+    EXPECT_INDEX_COLUMNS = auto()
+    
+    # 扩展相关状态
+    EXPECT_EXTENSION_NAME = auto()
+
+class SqlParser(LParserBase[SqlParserState, Any]):
     def __init__(self):
-        super().__init__(State.NORMAL)
-        
-    def handle_normal(self, ch: str, i: int, content: str, n: int) -> int:
-        # 1. 检查行注释 --
-        if ch == '-' and i + 1 < n and content[i+1] == '-':
-            self.switch_state(State.LINE_COMMENT)
-            return i + 2
-        
-        # 2. 检查块注释 /*
-        if ch == '/' and i + 1 < n and content[i+1] == '*':
-            self.switch_state(State.BLOCK_COMMENT)
-            return i + 2
-            
-        # 3. 检查 Dollar Quote ($$ 或 $tag$)
-        if ch == '$':
-            match = re.match(r'\$([^$]*)\$', content[i:])
-            if match:
-                tag = match.group(0)
-                self.context['dollar_tag'] = tag
-                self.switch_state(State.DOLLAR_QUOTE)
-                self.append_buffer(tag)
-                return i + len(tag)
-        
-        # 4. 检查单引号字符串
-        if ch == "'":
-            self.switch_state(State.SINGLE_QUOTE)
-            self.append_buffer(ch)
-            return i + 1
-            
-        # 5. 检查双引号字符串
-        if ch == '"':
-            self.switch_state(State.DOUBLE_QUOTE)
-            self.append_buffer(ch)
-            return i + 1
-        
-        # 6. 检查括号
-        if ch == '(':
-            self.stack.push('(')
-            self.append_buffer(ch)
-            return i + 1
-        elif ch == ')':
-            if not self.stack.is_empty():
-                self.stack.pop()
-            self.append_buffer(ch)
-            return i + 1
-            
-        # 7. 检查分号 (语句结束)
-        if ch == ';':
-            if self.stack.is_empty():
-                # 语句结束
-                stmt = self.flush_buffer()
-                if stmt:
-                    self.emit(stmt)
-                return i + 1
-            else:
-                # 在括号内的分号，视为普通字符
-                self.append_buffer(ch)
-                return i + 1
-        
-        # 普通字符
-        self.append_buffer(ch)
-        return i + 1
-
-    def handle_line_comment(self, ch: str, i: int, content: str, n: int) -> int:
-        if ch == '\n':
-            self.switch_state(State.NORMAL)
-            self.append_buffer('\n')
-        return i + 1
-
-    def handle_block_comment(self, ch: str, i: int, content: str, n: int) -> int:
-        if ch == '*' and i + 1 < n and content[i+1] == '/':
-            self.switch_state(State.NORMAL)
-            self.append_buffer(' ')
-            return i + 2
-        return i + 1
-
-    def handle_single_quote(self, ch: str, i: int, content: str, n: int) -> int:
-        self.append_buffer(ch)
-        if ch == "'":
-            # 检查转义 ''
-            if i + 1 < n and content[i+1] == "'":
-                self.append_buffer("'")
-                return i + 2
-            else:
-                self.switch_state(State.NORMAL)
-                return i + 1
-        return i + 1
-
-    def handle_double_quote(self, ch: str, i: int, content: str, n: int) -> int:
-        self.append_buffer(ch)
-        if ch == '"':
-            # 检查转义 ""
-            if i + 1 < n and content[i+1] == '"':
-                self.append_buffer('"')
-                return i + 2
-            else:
-                self.switch_state(State.NORMAL)
-                return i + 1
-        return i + 1
-
-    def handle_dollar_quote(self, ch: str, i: int, content: str, n: int) -> int:
-        tag = self.context.get('dollar_tag', '$$')
-        if content.startswith(tag, i):
-            self.append_buffer(tag)
-            self.switch_state(State.NORMAL)
-            return i + len(tag)
-        else:
-            self.append_buffer(ch)
-            return i + 1
-
-    def on_finish(self):
-        stmt = self.flush_buffer()
-        if stmt:
-            self.emit(stmt)
-
-
-class SqlParser:
-    """SQL解析器, 用于正则解析.sql文件并生成SchemaMeta"""
-
-    def __init__(self):
+        super().__init__(SqlParserState.IDLE)
         self.schema = SchemaMeta()
-        self.splitter = SqlSplitter()
+        
+        # 上下文变量
+        self.current_table: Optional[TableMeta] = None
+        self.current_index: Optional[IndexMeta] = None
+        self.temp_index_unique = False
 
     def parse_file(self, file_path: str) -> SchemaMeta:
-        """解析SQL文件"""
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
         return self.parse_string(content)
 
     def parse_string(self, content: str) -> SchemaMeta:
-        """解析SQL字符串"""
-        # 使用状态机分割语句
-        statements = self.splitter.parse(content)
-        
-        # 解析每个语句
-        for stmt in statements:
-            stmt = stmt.strip()
-            if not stmt:
-                continue
-            
-            if self._is_create_table(stmt):
-                self._parse_create_table(stmt)
-            elif self._is_create_index(stmt):
-                self._parse_create_index(stmt)
-            elif self._is_create_extension(stmt):
-                self._parse_create_extension(stmt)
-                
+        tokenizer = SqlTokenizer()
+        tokens = tokenizer.parse(content)
+        self.parse(tokens)
         return self.schema
 
-    # ...existing code...
-    def _is_create_table(self, stmt: str) -> bool:
-        return re.match(r'CREATE\s+TABLE', stmt, re.IGNORECASE) is not None
+    # --- 空闲状态处理 ---
+    def handle_idle(self, token: LToken, i: int, tokens: List[LToken], n: int) -> Optional[int]:
+        if token.type == SqlTokenType.KEYWORD and token.value.upper() == "CREATE":
+            # 向前查看我们要创建什么
+            if i + 1 < n:
+                next_token = tokens[i+1]
+                val = next_token.value.upper()
+                
+                if val == "TABLE":
+                    self.switch_state(SqlParserState.EXPECT_TABLE_NAME)
+                    return i + 2
+                elif val == "OR":
+                    # CREATE OR REPLACE ...
+                    # 跳过 OR, REPLACE
+                    # 简单的跳过逻辑：找到下一个关键字是 TABLE/FUNCTION 等
+                    # 目前假设不支持或简单处理 CREATE OR REPLACE FUNCTION/VIEW 等
+                    # 但如果是 CREATE OR REPLACE TABLE (标准 SQL 中少见但在某些方言中可能)
+                    pass
+                elif val == "UNIQUE":
+                    self.temp_index_unique = True
+                    # 接下来期望 INDEX
+                    if i + 2 < n and tokens[i+2].value.upper() == "INDEX":
+                        self.switch_state(SqlParserState.EXPECT_INDEX_NAME)
+                        return i + 3
+                elif val == "INDEX":
+                    self.temp_index_unique = False
+                    self.switch_state(SqlParserState.EXPECT_INDEX_NAME)
+                    return i + 2
+                elif val == "EXTENSION":
+                    self.switch_state(SqlParserState.EXPECT_EXTENSION_NAME)
+                    return i + 2
+                    
+        return None
 
-    def _is_create_index(self, stmt: str) -> bool:
-        return re.match(r'CREATE\s+(UNIQUE\s+)?INDEX', stmt, re.IGNORECASE) is not None
-
-    def _is_create_extension(self, stmt: str) -> bool:
-        return re.match(r'CREATE\s+EXTENSION', stmt, re.IGNORECASE) is not None
-
-    def _parse_create_extension(self, stmt: str):
-        match = re.search(r'CREATE\s+EXTENSION\s+(IF\s+NOT\s+EXISTS\s+)?(\w+)', stmt, re.IGNORECASE)
-        if match:
-            if_not_exists = bool(match.group(1))
-            name = match.group(2)
-            self.schema.extensions.append(ExtensionMeta(name=name, if_not_exists=if_not_exists))
-
-    def _parse_create_table(self, stmt: str):
-        # 提取表名
-        # CREATE TABLE IF NOT EXISTS table_name ( ... )
-        match = re.match(r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s*\((.*)\)', stmt, re.IGNORECASE | re.DOTALL)
-        if not match:
-            return
-
-        table_name = match.group(1)
-        body = match.group(2)
+    # --- 扩展处理 ---
+    def handle_expect_extension_name(self, token: LToken, i: int, tokens: List[LToken], n: int) -> Optional[int]:
+        if token.value.upper() in ("IF", "NOT", "EXISTS"):
+            return None
         
-        table_meta = TableMeta(name=table_name)
-        
-        # 分割列定义
-        # 需要处理括号嵌套，例如 DECIMAL(10, 2)
-        columns_defs = self._split_columns(body)
-        
-        for col_def in columns_defs:
-            col_meta = self._parse_column_definition(col_def)
-            if col_meta:
-                table_meta.columns[col_meta.name] = col_meta
-                if col_meta.is_primary_key:
-                    table_meta.primary_key = col_meta.name
+        if token.type == SqlTokenType.IDENTIFIER or token.type == SqlTokenType.KEYWORD:
+            # 找到扩展名
+            ext_name = token.value.strip('"')
+            self.schema.extensions.append(ExtensionMeta(name=ext_name))
+            self.switch_state(SqlParserState.IDLE)
+        return None
 
-        self.schema.tables[table_name] = table_meta
-
-    def _split_columns(self, body: str) -> List[str]:
-        """分割列定义，处理括号"""
-        defs = []
-        current = []
-        paren_count = 0
+    # --- 索引处理 ---
+    def handle_expect_index_name(self, token: LToken, i: int, tokens: List[LToken], n: int) -> Optional[int]:
+        if token.value.upper() in ("IF", "NOT", "EXISTS"):
+            return None
         
-        for char in body:
-            if char == '(':
-                paren_count += 1
-                current.append(char)
-            elif char == ')':
-                paren_count -= 1
-                current.append(char)
-            elif char == ',' and paren_count == 0:
-                defs.append(''.join(current).strip())
-                current = []
+        if token.type == SqlTokenType.IDENTIFIER:
+            idx_name = token.value.strip('"')
+            self.current_index = IndexMeta(
+                name=idx_name, 
+                table_name="", 
+                columns=[], 
+                unique=self.temp_index_unique
+            )
+            self.switch_state(SqlParserState.EXPECT_INDEX_ON)
+        return None
+
+    def handle_expect_index_on(self, token: LToken, i: int, tokens: List[LToken], n: int) -> Optional[int]:
+        if token.value.upper() == "ON":
+            self.switch_state(SqlParserState.EXPECT_INDEX_TABLE)
+        return None
+
+    def handle_expect_index_table(self, token: LToken, i: int, tokens: List[LToken], n: int) -> Optional[int]:
+        if token.type == SqlTokenType.IDENTIFIER:
+            table_name = token.value.strip('"')
+            if self.current_index:
+                self.current_index.table_name = table_name
+            self.switch_state(SqlParserState.EXPECT_INDEX_USING)
+        return None
+
+    def handle_expect_index_using(self, token: LToken, i: int, tokens: List[LToken], n: int) -> Optional[int]:
+        if token.value.upper() == "USING":
+            # 下一个 Token 是方法
+            if i + 1 < n:
+                method = tokens[i+1].value
+                if self.current_index:
+                    self.current_index.method = method
+                self.switch_state(SqlParserState.EXPECT_INDEX_COLUMNS)
+                return i + 2
+        elif token.value == "(":
+            # 跳过 USING，直接处理列
+            self.switch_state(SqlParserState.EXPECT_INDEX_COLUMNS)
+            return i # 不消耗 '('，让下一个状态处理
+        return None
+
+    def handle_expect_index_columns(self, token: LToken, i: int, tokens: List[LToken], n: int) -> Optional[int]:
+        if token.value == "(":
+            # 开始收集列
+            # 我们只消耗 Token 直到 ')'
+            # 这是一个简单的实现，不处理索引中的复杂表达式
+            j = i + 1
+            cols = []
+            while j < n:
+                t = tokens[j]
+                if t.value == ")":
+                    if self.current_index:
+                        self.current_index.columns = cols
+                        # 如果表存在，则添加到表
+                        if self.current_index.table_name in self.schema.tables:
+                            self.schema.tables[self.current_index.table_name].indices[self.current_index.name] = self.current_index
+                    self.current_index = None
+                    self.switch_state(SqlParserState.IDLE)
+                    return j + 1
+                elif t.type == SqlTokenType.IDENTIFIER:
+                    cols.append(t.value.strip('"'))
+                j += 1
+        return None
+
+    # --- 表处理 ---
+    def handle_expect_table_name(self, token: LToken, i: int, tokens: List[LToken], n: int) -> Optional[int]:
+        if token.value.upper() in ("IF", "NOT", "EXISTS"):
+            return None
+        
+        if token.type == SqlTokenType.IDENTIFIER:
+            # 找到表名
+            # 处理 schema.table 格式（此处尚未实现）
+            table_name = token.value.strip('"')
+            self.current_table = TableMeta(name=table_name, columns={})
+            self.switch_state(SqlParserState.EXPECT_TABLE_OPEN_PAREN)
+        return None
+
+    def handle_expect_table_open_paren(self, token: LToken, i: int, tokens: List[LToken], n: int) -> Optional[int]:
+        if token.value == "(":
+            self.switch_state(SqlParserState.INSIDE_TABLE_BODY)
+            # 使用基类提供的 Scope 方法
+            self.enter_scope("TABLE_BODY")
+        return None
+
+    def handle_inside_table_body(self, token: LToken, i: int, tokens: List[LToken], n: int) -> Optional[int]:
+        # 处理嵌套括号 (例如在 DEFAULT 表达式、CHECK 约束或类型定义中)
+        if token.value == "(":
+            self.enter_scope("PAREN")
+            return None
+
+        # 检查表定义结束或嵌套结束
+        if token.value == ")":
+            # 获取当前作用域，决定如何处理
+            current = self.current_scope()
+            
+            if current == "TABLE_BODY":
+                # 退出 TABLE_BODY 作用域
+                self.exit_scope("TABLE_BODY")
+                
+                if self.current_table:
+                    self.schema.tables[self.current_table.name] = self.current_table
+                    self.current_table = None
+                self.switch_state(SqlParserState.IDLE)
+                return None
+            
+            elif current == "PAREN":
+                # 退出普通括号作用域
+                self.exit_scope("PAREN")
+                return None
+            
             else:
-                current.append(char)
-        
-        if current:
-            defs.append(''.join(current).strip())
+                # 栈为空或未知状态，exit_scope 会自动抛出异常，或者我们可以手动抛出
+                # 这里调用 exit_scope 让它去处理空栈或不匹配的情况
+                self.exit_scope("UNKNOWN") 
             
-        return defs
-
-    def _parse_column_definition(self, col_def: str) -> Optional[ColumnMeta]:
-        """解析单个列定义"""
-        # 示例: id SERIAL PRIMARY KEY
-        # 示例: user_id VARCHAR(64) DEFAULT 'default'
-        # 示例: task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE
-        
-        parts = col_def.split()
-        if not parts:
+        if token.value == ",":
             return None
-            
-        name = parts[0]
-        if len(parts) < 2:
-            return None
-            
-        # 类型可能包含括号，如 VARCHAR(64)
-        data_type = parts[1]
-        
-        # 剩余部分是约束
-        # 不直接upper，以免破坏DEFAULT中的字符串大小写
-        constraints_raw = ' '.join(parts[2:])
-        constraints_upper = constraints_raw.upper()
-        
-        is_primary_key = 'PRIMARY KEY' in constraints_upper
-        is_nullable = 'NOT NULL' not in constraints_upper
-        
-        default_val = None
-        # 使用 case-insensitive regex 匹配 DEFAULT
-        default_match = re.search(r'DEFAULT\s+([^,\s]+|\'[^\']*\')', constraints_raw, re.IGNORECASE)
-        if default_match:
-            default_val = default_match.group(1)
-            
-        references = None
-        ref_match = re.search(r'REFERENCES\s+(\w+)\s*\((\w+)\)', constraints_raw, re.IGNORECASE)
-        if ref_match:
-            references = f"{ref_match.group(1)}({ref_match.group(2)})"
-            
-        return ColumnMeta(
-            name=name,
-            data_type=data_type,
-            is_primary_key=is_primary_key,
-            is_nullable=is_nullable,
-            default=default_val,
-            references=references,
-            constraints=parts[2:] # 保存原始约束部分
-        )
 
-    def _parse_create_index(self, stmt: str):
-        # CREATE INDEX IF NOT EXISTS idx_name ON table_name USING method (col1, col2) ...
-        match = re.match(r'CREATE\s+(UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s+ON\s+(\w+)', stmt, re.IGNORECASE)
-        if not match:
-            return
+        # 解析列或约束
+        if token.type == SqlTokenType.KEYWORD and token.value.upper() in ("CONSTRAINT", "PRIMARY", "FOREIGN", "CHECK", "UNIQUE"):
+            # 表级约束 - 暂时跳过直到下一个逗号或括号
+            # 我们只消耗直到遇到 ',' 或 ')'
+            # 理想情况下我们应该解析它们。
+            pass
+        elif token.type == SqlTokenType.IDENTIFIER:
+            # 列定义
+            return self._parse_column_definition(token, i, tokens, n)
             
-        is_unique = bool(match.group(1))
-        index_name = match.group(2)
-        table_name = match.group(3)
+        return None
+
+    def _parse_column_definition(self, token: LToken, i: int, tokens: List[LToken], n: int) -> int:
+        """
+        从 i (列名) 开始解析单个列定义。
+        返回解析后的新索引。
+        """
+        col_name = token.value.strip('"')
+        col_type = "UNKNOWN"
         
-        # 尝试解析列和方法
-        rest = stmt[match.end():].strip()
+        # 下一个 Token 应该是类型
+        current_idx = i + 1
+        if current_idx < n:
+            type_token = tokens[current_idx]
+            col_type = type_token.value
+            # 如果类型有参数如 VARCHAR(255)，消耗它们
+            if current_idx + 1 < n and tokens[current_idx+1].value == "(":
+                # 消耗 ( ... )
+                current_idx += 2
+                while current_idx < n and tokens[current_idx].value != ")":
+                    col_type += tokens[current_idx].value # 将参数追加到类型字符串，或者忽略
+                    current_idx += 1
+                if current_idx < n:
+                    col_type += ")" # 添加右括号
+                    current_idx += 1
+            else:
+                current_idx += 1
         
-        method = None
-        method_match = re.match(r'USING\s+(\w+)', rest, re.IGNORECASE)
-        if method_match:
-            method = method_match.group(1)
+        col = ColumnMeta(name=col_name, data_type=col_type)
+        
+        # 解析约束
+        while current_idx < n:
+            t = tokens[current_idx]
+            val = t.value.upper()
             
-        # 提取括号内的列
-        # 寻找第一个左括号和对应的右括号
-        start_paren = rest.find('(')
-        end_paren = rest.find(')', start_paren)
-        
-        columns = []
-        if start_paren != -1 and end_paren != -1:
-            cols_str = rest[start_paren+1:end_paren]
-            # 处理列名，可能包含 opclass (e.g., embedding vector_l2_ops)
-            columns = [c.strip().split()[0] for c in cols_str.split(',')]
+            if val == "," or val == ")":
+                # 列定义结束
+                break
             
-        index_meta = IndexMeta(
-            name=index_name,
-            table_name=table_name,
-            columns=columns,
-            method=method,
-            unique=is_unique,
-            definition=stmt
-        )
-        
-        # 将索引添加到对应的表元数据中
-        if table_name in self.schema.tables:
-            self.schema.tables[table_name].indices[index_name] = index_meta
+            if val == "PRIMARY":
+                # 期望 KEY
+                if current_idx + 1 < n and tokens[current_idx+1].value.upper() == "KEY":
+                    col.is_primary_key = True
+                    col.constraints.append("PRIMARY KEY")
+                    current_idx += 2
+                    continue
+            
+            if val == "NOT":
+                # 期望 NULL
+                if current_idx + 1 < n and tokens[current_idx+1].value.upper() == "NULL":
+                    col.is_nullable = False
+                    col.constraints.append("NOT NULL")
+                    current_idx += 2
+                    continue
+            
+            if val == "DEFAULT":
+                # 下一个是值
+                if current_idx + 1 < n:
+                    col.default = tokens[current_idx+1].value
+                    current_idx += 2
+                    continue
+            
+            if val == "REFERENCES":
+                # REFERENCES table(col)
+                if current_idx + 1 < n:
+                    ref_table = tokens[current_idx+1].value
+                    ref_col = ""
+                    current_idx += 2
+                    if current_idx < n and tokens[current_idx].value == "(":
+                        if current_idx + 1 < n:
+                            ref_col = tokens[current_idx+1].value
+                            current_idx += 3 # ( col )
+                    col.references = f"{ref_table}({ref_col})"
+                    continue
+
+            # 如果是未知的约束部分，直接跳过或添加到原始约束
+            # 目前仅跳过
+            current_idx += 1
+
+        if self.current_table:
+            self.current_table.columns[col_name] = col
+            if col.is_primary_key:
+                self.current_table.primary_key.append(col_name)
+                
+        return current_idx

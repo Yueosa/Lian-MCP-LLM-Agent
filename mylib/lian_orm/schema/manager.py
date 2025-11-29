@@ -22,16 +22,16 @@ class SchemaManager:
     def get_table(self, table_name: str) -> TableMeta:
         """获取指定表的元数据"""
         if not self.schema:
-             raise RuntimeError("Schema not loaded. Please call load_from_file() first.")
+            raise RuntimeError("Schema not loaded. Please call load_from_file() first.")
         if table_name not in self.schema.tables:
-             raise ValueError(f"Table '{table_name}' not found in schema.")
+            raise ValueError(f"Table '{table_name}' not found in schema.")
         return self.schema.tables[table_name]
 
     def _get_field(self, table_name: str, field_name: str) -> ColumnMeta:
         """获取指定表字段的元数据"""
         table = self.get_table(table_name)
         if field_name not in table.columns:
-             raise ValueError(f"Column '{field_name}' not found in table '{table_name}'.")
+            raise ValueError(f"Column '{field_name}' not found in table '{table_name}'.")
         return table.columns[field_name]
 
     def __getattr__(self, name: str) -> Callable[..., Any]:

@@ -3,7 +3,6 @@ from typing import Any, List, Optional, Union, Dict, Generic, Type
 from enum import Enum
 from ..database.client import DatabaseClient
 from ..mapper.converter import DataConverter
-from ..models import MemoryLog, Task, TaskStep, ToolCall
 from ..models.core.BaseModel import RelationalModel
 from ..models.core.Type import T
 from ..schema.SqlBase import TableMeta
@@ -383,10 +382,10 @@ class BaseRepo(ABC, Generic[T]):
         return None
     
     def join_query(self, 
-                   join_table: str,
-                   join_condition: str,
-                   select_fields: Optional[List[str]] = None,
-                   join_type: str = "INNER",
+                    join_table: str,
+                    join_condition: str,
+                    select_fields: Optional[List[str]] = None,
+                    join_type: str = "INNER",
                    **where_conditions) -> List[Dict[str, Any]]:
         """执行 JOIN 查询"""
         if not self._can_read:

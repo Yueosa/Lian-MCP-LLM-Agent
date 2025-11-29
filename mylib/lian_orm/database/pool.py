@@ -1,6 +1,4 @@
 from psycopg2 import pool
-from typing import Dict, Any
-
 
 
 class PostgreSQLConnectionPool:
