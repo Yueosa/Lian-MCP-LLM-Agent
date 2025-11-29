@@ -2,7 +2,7 @@
 
 > 此文档面向 **模块开发者**，在代码层简述了各文件实现
 
-###### By - Lian 2025 | Updated 2025-11-28
+###### By - Lian 2025 | Updated 2025-11-29
 
 ---
 
@@ -12,42 +12,36 @@
 
 ---
 
-## 数据类
+## 核心组件
 
-#### (1) ColumnMeta
+### (1) SchemaManager
 
-> 列元数据
+> 位于 `schema/manager.py`
 
-#### (2) IndexMeta
+Schema 管理器，提供对 Schema 元数据的统一访问接口。
 
-> 索引元数据
+- **load_from_file(file_path)**: 从本地 SQL 文件加载 Schema。
+- **get_table(table_name)**: 获取指定表的元数据 (`TableMeta`)。
+- **all_tables**: 获取所有已加载的表名列表。
 
-#### (3) TableMeta
+### (2) Metadata
 
-> 表元数据
+> 位于 `schema/metadata/metadata.py`
 
-#### (4) ExtensionMeta
+定义了描述数据库结构的 Dataclass。
 
-> 扩展元数据
+- **ColumnMeta**: 列元数据 (name, data_type, is_primary_key, is_nullable, default, references, constraints, description)
+- **IndexMeta**: 索引元数据 (name, table_name, columns, method, unique, definition)
+- **TableMeta**: 表元数据 (name, columns, indices, primary_key, comment)
+- **SchemaMeta**: 完整 Schema 元数据 (tables, extensions)
 
-#### (5) SchemaMeta
+### (3) SqlParser
 
-> 库元数据
+> 位于 `schema/localfile/parser.py`
+
+基于状态机 (FSM) 的 SQL 解析器，用于解析 SQL 文件并生成 `SchemaMeta`。
+
+- **parse_file(file_path)**: 解析 SQL 文件。
+- **parse_string(content)**: 解析 SQL 字符串。
 
 ---
-
-## SqlParser
-
-这个类继承自 `LParserBase`，是一个**基于状态机（FSM）的 SQL 语法分析器**。
-
-它的核心工作是接收 Token 流（由 `SqlTokenizer` 产生），并根据当前状态（`SqlParserState`）进行流转，最终构建出 `SchemaMeta` 对象。
-
-#### (1) 状态定义 `SqlParserState`
-
-解释: 这里定义了解析器的所有可能状态。
-- **IDLE**: 初始状态，等待 `CREATE` 关键字。
-- **EXPECT_TABLE_\***: 处理 `CREATE TABLE` 语句的各个阶段。
-- **EXPECT_INDEX_\***: 处理 `CREATE INDEX` 语句的各个阶段。
-- **EXPECT_EXTENSION_\***: 处理 `CREATE EXTENSION` 语句。
-
-#### (2) 
