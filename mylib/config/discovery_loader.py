@@ -6,7 +6,7 @@ import fnmatch
 
 from .base import ConfigDictWrapper
 
-from mylib.utils import Loutput
+from mylib.kit import Loutput
 
 
 class DiscoveryLoader:

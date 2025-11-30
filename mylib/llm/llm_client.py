@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 
 from mylib.config import ConfigLoader
 
-from mylib.utils import Loutput
+from mylib.kit import Loutput
 
 RESET = "\033[0m"
 BOLD = "\033[1m"

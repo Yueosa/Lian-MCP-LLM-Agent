@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .loader import ConfigLoader
 
-from mylib.utils import Loutput
+from mylib.kit import Loutput
 
 
 class Summary:
