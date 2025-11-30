@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Union, Dict, Generic, Type
+from typing import Any, List, Optional, Dict, Generic, Type
 from enum import Enum
 from ..database.client import DatabaseClient
 from ..mapper.converter import DataConverter

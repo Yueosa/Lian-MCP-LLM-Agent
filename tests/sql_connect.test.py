@@ -4,7 +4,7 @@ import psycopg2
 from mylib import ConfigLoader
 
 def get_all_tables():
-    cfg = ConfigLoader(config_path="../mylib/sql/config/")
+    cfg = ConfigLoader(config_path="../mylib/lian_orm/config/")
     conn = psycopg2.connect(
         host=cfg.Postgresql.host,
         port=cfg.Postgresql.port,

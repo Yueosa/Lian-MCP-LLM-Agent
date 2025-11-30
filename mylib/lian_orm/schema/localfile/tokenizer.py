@@ -11,7 +11,8 @@ class SqlTokenType(Enum):
     WHITESPACE = auto()   # 空白 (可选发射)
 
 class SqlTokenizerState(Enum):
-    NORMAL = auto()             # 普通模式
+    IDLE = auto()               # 空闲模式
+    IDENTIFIER = auto()         # 标识符模式
     IN_STRING_SINGLE = auto()   # 单引号字符串内部 '...'
     IN_STRING_DOLLAR = auto()   # Dollar 引用字符串内部 $$...$$
     IN_COMMENT_LINE = auto()    # 单行注释内部 -- ...
@@ -19,42 +20,32 @@ class SqlTokenizerState(Enum):
 
 class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
     def __init__(self):
-        super().__init__(SqlTokenizerState.NORMAL)
+        super().__init__(SqlTokenizerState.IDLE)
         self.dollar_tag = ""
 
-    def handle_normal(self, char: str, i: int, content: str, n: int) -> Optional[int]:
+    def handle_idle(self, char: str, i: int, content: str, n: int) -> Optional[int]:
         # 跳过空白字符
         if char.isspace():
-            if self.buffer:
-                self._flush_buffer_as_token()
             return None
 
         # 检查单行注释开始 --
         if char == '-' and i + 1 < n and content[i+1] == '-':
-            if self.buffer:
-                self._flush_buffer_as_token()
             self.switch_state(SqlTokenizerState.IN_COMMENT_LINE)
             return i + 2 # 跳过 --
 
         # 检查块注释开始 /*
         if char == '/' and i + 1 < n and content[i+1] == '*':
-            if self.buffer:
-                self._flush_buffer_as_token()
             self.switch_state(SqlTokenizerState.IN_COMMENT_BLOCK)
             return i + 2
 
         # 检查单引号字符串开始 '
         if char == "'":
-            if self.buffer:
-                self._flush_buffer_as_token()
             self.switch_state(SqlTokenizerState.IN_STRING_SINGLE)
             self.mark_start() # 标记 Token 开始位置
             return None
 
         # 检查 Dollar 引用字符串开始 $
         if char == '$':
-            if self.buffer:
-                self._flush_buffer_as_token()
             # 检查是否是 dollar tag
             # 简单检查: 寻找下一个 $
             tag_end = content.find('$', i + 1)
@@ -67,20 +58,44 @@ class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
                 return tag_end + 1
             else:
                 # 只是一个单独的 $ 符号
+                self.mark_start()
                 self.emit(SqlTokenType.SYMBOL, "$")
                 return None
 
         # 处理符号
         if char in "(),;":
-            if self.buffer:
-                self._flush_buffer_as_token()
             self.mark_start()
             self.emit(SqlTokenType.SYMBOL, char)
             return None
 
-        # 累积到缓冲区
-        if not self.buffer:
-            self.mark_start()
+        # 其他字符 -> 进入标识符模式
+        self.switch_state(SqlTokenizerState.IDENTIFIER)
+        self.mark_start()
+        self.buffer.append(char)
+        return None
+
+    def handle_identifier(self, char: str, i: int, content: str, n: int) -> Optional[int]:
+        # 检查是否遇到分隔符
+        is_separator = False
+        
+        if char.isspace():
+            is_separator = True
+        elif char in "(),;":
+            is_separator = True
+        elif char == "'":
+            is_separator = True
+        elif char == '$':
+            is_separator = True
+        elif char == '-' and i + 1 < n and content[i+1] == '-':
+            is_separator = True
+        elif char == '/' and i + 1 < n and content[i+1] == '*':
+            is_separator = True
+            
+        if is_separator:
+            self._emit_identifier()
+            self.switch_state(SqlTokenizerState.IDLE)
+            return i # 重新处理当前字符 (交给 IDLE)
+            
         self.buffer.append(char)
         return None
 
@@ -93,7 +108,7 @@ class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
             else:
                 # 字符串结束
                 self.emit(SqlTokenType.STRING)
-                self.switch_state(SqlTokenizerState.NORMAL)
+                self.switch_state(SqlTokenizerState.IDLE)
                 return None
         self.buffer.append(char)
         return None
@@ -103,29 +118,26 @@ class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
         if char == '$':
             if content.startswith(self.dollar_tag, i):
                 self.emit(SqlTokenType.STRING)
-                self.switch_state(SqlTokenizerState.NORMAL)
+                self.switch_state(SqlTokenizerState.IDLE)
                 return i + len(self.dollar_tag)
         self.buffer.append(char)
         return None
 
     def handle_in_comment_line(self, char: str, i: int, content: str, n: int) -> Optional[int]:
         if char == '\n':
-            self.switch_state(SqlTokenizerState.NORMAL)
+            self.switch_state(SqlTokenizerState.IDLE)
         return None
 
     def handle_in_comment_block(self, char: str, i: int, content: str, n: int) -> Optional[int]:
         if char == '*' and i + 1 < n and content[i+1] == '/':
-            self.switch_state(SqlTokenizerState.NORMAL)
+            self.switch_state(SqlTokenizerState.IDLE)
             return i + 2
         return None
 
-    def _flush_buffer_as_token(self):
+    def _emit_identifier(self):
         if not self.buffer:
             return
         text = "".join(self.buffer)
-        # 确定 Token 类型: KEYWORD 或 IDENTIFIER
-        # 简单启发式规则: 如果全大写或者是已知关键字 -> KEYWORD
-        # 目前我们假设所有非关键字都是 IDENTIFIER，Parser 会进一步检查
         
         KEYWORDS = {
             "CREATE", "TABLE", "IF", "NOT", "EXISTS", "PRIMARY", "KEY", 
@@ -138,9 +150,7 @@ class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
             self.emit(SqlTokenType.KEYWORD, text)
         else:
             self.emit(SqlTokenType.IDENTIFIER, text)
-        
-        self.buffer = []
 
     def on_finish(self):
-        if self.buffer:
-            self._flush_buffer_as_token()
+        if self.state == SqlTokenizerState.IDENTIFIER:
+            self._emit_identifier()

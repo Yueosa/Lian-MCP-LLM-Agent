@@ -24,8 +24,8 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from mylib.lian_orm import Sql
-from mylib.lian_orm.Model import Task, TaskStep, ToolCall, MemoryLog
-from mylib.lian_orm.Model.Enum import tasks_status, task_steps_status, tool_calls_status
+from mylib.lian_orm.models import Task, TaskStep, ToolCall, MemoryLog
+from mylib.lian_orm.models import tasks_status, task_steps_status, tool_calls_status
 from mylib.kit import Loutput
 
 # 初始化

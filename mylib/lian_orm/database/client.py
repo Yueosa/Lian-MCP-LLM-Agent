@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Optional, Dict
+from typing import Any, List, Optional, Dict
 from contextlib import contextmanager
 from .pool import PostgreSQLConnectionPool
 

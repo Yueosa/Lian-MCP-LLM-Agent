@@ -31,8 +31,7 @@ class Sql:
         if config_path:
             self.cfg = load_sql_config(config_path=config_path)
         else:
-            default_config = Path(__file__).parent / "config" / "sql_config.toml"
-            self.cfg = load_sql_config(config_path=str(default_config))
+            self.cfg = load_sql_config()
         
         self.host = host or getattr(self.cfg.Postgresql, 'host', None)
         self.port = port or getattr(self.cfg.Postgresql, 'port', 5432)
