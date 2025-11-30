@@ -219,12 +219,17 @@ Web UI 特性:
 
 #### 🧩 算法与数据结构
 - **Lstack**: 封装的标准栈结构。提供了严谨的压栈、出栈接口，支持迭代器模式，是实现下推自动机和递归算法的基础容器。
+    - [Lstack 设计文档](mylib/kit/Lstack/docs/Lstack.md) (点击跳转)
 - **Lfsm**: 通用有限状态机 (Finite State Machine) 基类。通过继承方式定义状态与转换规则，逻辑清晰且易于维护，广泛应用于协议解析和流程控制场景。
+    - [Lfsm 设计文档](mylib/kit/Lfsm/docs/Lfsm.md) (点击跳转)
 - **Lpda**: 下推自动机 (Pushdown Automaton)，支持嵌套结构解析。结合了有限状态机与栈的特性，专门用于处理括号匹配、代码块解析等具有递归特性的语法结构。
+    - [Lpda 设计文档](mylib/kit/Lpda/docs/Lpda.md) (点击跳转)
 
 #### 📝 文本处理
 - **Ltokenizer**: 基于状态机的通用分词器基类。支持流式处理和位置追踪（行号/列号），能够高效地将原始文本转换为结构化的 Token 序列，为解析器提供标准输入。
+    - [Ltokenizer 设计文档](mylib/kit/Ltokenizer/docs/Ltokenizer.md) (点击跳转)
 - **Lparser**: 基于 LPDA 的通用解析器基类，用于构建复杂的语法分析器。提供了灵活的解析钩子和上下文管理机制，开发者只需关注语法规则的定义，即可快速构建出功能强大的自定义语言解析器。
+    - [Lparser 设计文档](mylib/kit/Lparser/docs/Lparser.md) (点击跳转)
 - **Lfind**: 向量嵌入 (Embedding) 工具封装，用于知识库检索。集成了主流的 Embedding 模型接口，提供了开箱即用的文本向量化和相似度匹配功能，是实现 RAG（检索增强生成）系统的核心组件。
 
 ---
