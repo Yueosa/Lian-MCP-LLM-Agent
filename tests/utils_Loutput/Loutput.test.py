@@ -1,8 +1,8 @@
 #标准色预览
 import base
 
-from mylib.utils.Loutput import Loutput
-from mylib.utils.Loutput import FontColor8, Background8, TextEffect
+from mylib.kit.Loutput import Loutput
+from mylib.kit.Loutput import FontColor8, Background8, TextEffect
 
 out = Loutput()
 

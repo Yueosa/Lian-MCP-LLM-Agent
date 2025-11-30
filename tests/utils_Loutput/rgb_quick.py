@@ -1,6 +1,6 @@
 """快速测试 RGBColor 枚举"""
 import base
-from mylib.utils.Loutput import Loutput, RGBColor
+from mylib.kit.Loutput import Loutput, RGBColor
 
 out = Loutput()
 

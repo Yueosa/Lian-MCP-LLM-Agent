@@ -1,6 +1,6 @@
 # 颜色对比测试
 import base
-from mylib.utils.Loutput import Loutput, FontColor8, Background8
+from mylib.kit.Loutput import Loutput, FontColor8, Background8
 
 out = Loutput()
 

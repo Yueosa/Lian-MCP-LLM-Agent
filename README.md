@@ -8,28 +8,26 @@ By - Lian - 2025
 
 - [Lian-MCP-LLM Agent 系统](#lian-mcp-llm-agent-系统)
         - [本地多专家智能体调度系统 + 工具调用协议管理 + 可扩展知识库](#本地多专家智能体调度系统--工具调用协议管理--可扩展知识库)
-  - [项目核心](#项目核心)
+  - [🌟 项目核心](#-项目核心)
       - [| 顶层：多专家协作与调度 (论文亮点)](#-顶层多专家协作与调度-论文亮点)
-  - [开发进度](#开发进度)
-      - [(1) 数据库 --done--](#1-数据库---done--)
-        - [LianORM 模块 (原 SQL 模块) (refactor...)](#lianorm-模块-原-sql-模块-refactor)
-        - [测试套件 (refactor...)](#测试套件-refactor)
-      - [(2) mcp 包 --done--](#2-mcp-包---done--)
+  - [🚀 开发进度](#-开发进度)
+    - [💾 (1) 数据库层: LianORM --done--](#-1-数据库层-lianorm---done--)
+    - [🔌 (2) 工具层: MCP Server --done--](#-2-工具层-mcp-server---done--)
         - [核心功能](#核心功能)
         - [API 端点](#api-端点)
         - [启动方式](#启动方式)
-      - [(3) llm 包 --done-- (等待 Core 完成后进行重构)](#3-llm-包---done---等待-core-完成后进行重构)
+    - [🤖 (3) 交互层: LLM Client --done-- (等待 Core 完成后进行重构)](#-3-交互层-llm-client---done---等待-core-完成后进行重构)
         - [核心功能](#核心功能-1)
         - [使用方式](#使用方式)
-      - [(4) Config 包 --done--](#4-config-包---done--)
-      - [(5) Agent 包 --pedding--](#5-agent-包---pedding--)
-      - [(6) Core 包 --pedding--](#6-core-包---pedding--)
-      - [(7) utils 包](#7-utils-包)
-          - [目前实现的包](#目前实现的包)
-        - [Printer --done--](#printer---done--)
-        - [Loutput --done--](#loutput---done--)
-        - [Lstack --done--](#lstack---done--)
-        - [Lfsm --done--](#lfsm---done--)
+    - [⚙️ (4) 配置层: Config --done--](#️-4-配置层-config---done--)
+    - [🧠 (5) 智能体层: Agent --pedding--](#-5-智能体层-agent---pedding--)
+        - [设计哲学](#设计哲学)
+    - [🕹️ (6) 核心层: Core --pedding--](#️-6-核心层-core---pedding--)
+        - [核心职责 (Admin Agent)](#核心职责-admin-agent)
+    - [🛠️ (7) 工具库: Kit (原 Utils)](#️-7-工具库-kit-原-utils)
+      - [🎨 终端美化](#-终端美化)
+      - [🧩 算法与数据结构](#-算法与数据结构)
+      - [📝 文本处理](#-文本处理)
   - [🎓 学术使用声明](#-学术使用声明)
 
 
@@ -210,14 +208,14 @@ Web UI 特性:
 
 这是整个系统的"大脑"，实现了论文中提到的多专家协作架构。
 
-### 🛠️ (7) 工具库: Utils
+### 🛠️ (7) 工具库: Kit (原 Utils)
 
 > 包含了一系列自研的基础工具库，为上层模块提供支持。
 
 #### 🎨 终端美化
 - **Printer**: 基础彩色打印工具。简单轻量，开箱即用，适合快速输出带颜色的调试信息或日志，无需复杂配置。
 - **Loutput**: 高级终端输出库，支持 ANSI/256色/真彩色 (RGB 24bit)，提供色彩降级兼容。内置了丰富的颜色映射表和样式处理器，能够自动检测终端色彩支持能力并进行适配，让终端界面开发像前端一样优雅。
-    - [Loutput 使用文档](mylib/utils/Loutput/docs/Loutput.md) | [终端颜色指南](mylib/utils/Loutput/docs/ColorGuide.md) | [RGBColor 指南](mylib/utils/Loutput/docs/RGBColor.md)
+    - [Loutput 使用文档](mylib/kit/Loutput/docs/Loutput.md) | [终端颜色指南](mylib/kit/Loutput/docs/ColorGuide.md) | [RGBColor 指南](mylib/kit/Loutput/docs/RGBColor.md)
 
 #### 🧩 算法与数据结构
 - **Lstack**: 封装的标准栈结构。提供了严谨的压栈、出栈接口，支持迭代器模式，是实现下推自动机和递归算法的基础容器。

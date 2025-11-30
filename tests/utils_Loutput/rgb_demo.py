@@ -4,7 +4,7 @@ RGB 颜色映射使用示例
 """
 import base
 
-from mylib.utils.Loutput import Loutput, FontColor8, RGBColor, ANSItoRGB
+from mylib.kit.Loutput import Loutput, FontColor8, RGBColor, ANSItoRGB
 
 out = Loutput()
 
