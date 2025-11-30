@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from typing import List, Optional, Any
-from mylib.utils.Lparser import LParserBase
-from mylib.utils.Ltokenizer import LToken
+from mylib.kit.Lparser import LParserBase
+from mylib.kit.Ltokenizer import LToken
 from .tokenizer import SqlTokenType, SqlTokenizer
 from ..metadata import TableMeta, ColumnMeta, SchemaMeta, IndexMeta, ExtensionMeta
 

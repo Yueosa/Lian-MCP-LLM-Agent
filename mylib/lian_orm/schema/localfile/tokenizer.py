@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from typing import Optional
-from mylib.utils.Ltokenizer import LTokenizerBase
+from mylib.kit.Ltokenizer import LTokenizerBase
 
 class SqlTokenType(Enum):
     KEYWORD = auto()      # 关键字

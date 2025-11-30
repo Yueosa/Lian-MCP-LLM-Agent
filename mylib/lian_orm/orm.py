@@ -3,7 +3,7 @@ import inspect
 from typing import Dict, Any, Optional, Callable, List
 from pathlib import Path
 
-from mylib.config import ConfigLoader
+from .config import load_sql_config
 from .database.pool import PostgreSQLConnectionPool
 from .database.client import DatabaseClient
 from .schema.manager import SchemaManager
@@ -29,10 +29,10 @@ class Sql:
             config_path: 配置文件路径
         """
         if config_path:
-            self.cfg = ConfigLoader(config_path=config_path)
+            self.cfg = load_sql_config(config_path=config_path)
         else:
             default_config = Path(__file__).parent / "config" / "sql_config.toml"
-            self.cfg = ConfigLoader(config_path=str(default_config))
+            self.cfg = load_sql_config(config_path=str(default_config))
         
         self.host = host or getattr(self.cfg.Postgresql, 'host', None)
         self.port = port or getattr(self.cfg.Postgresql, 'port', 5432)
