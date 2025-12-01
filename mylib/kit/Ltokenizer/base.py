@@ -47,7 +47,8 @@ class LTokenizerBase(LStateMachine[S, LToken]):
             line=self.token_start_line,
             col=self.token_start_col
         )
-        self.results.append(token)
+        # self.results.append(token)
+        super().emit(token)
         self.buffer = []
         # Reset start marker to current position (approximate, usually caller will mark_start again)
         # 将起始标记重置为当前位置（近似值，通常调用者会再次调用 mark_start）
