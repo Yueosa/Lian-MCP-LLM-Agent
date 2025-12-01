@@ -38,16 +38,16 @@ class LStateMachine(Generic[S, R]):
         """
         self._reset()
         
-        n = len(content)
+        len = len(content)
         i = 0
-        while i < n:
+        while i < len:
             item = content[i]
             
             self._on_step(item)
 
             # 动态分发到 handle_{state_name} 方法
             handler = getattr(self, f"handle_{self.state.name.lower()}", self.handle_default)
-            new_i = handler(item, i, content, n)
+            new_i = handler(item, i, content, len)
             
             if new_i is not None:
                 i = new_i
@@ -69,7 +69,7 @@ class LStateMachine(Generic[S, R]):
         self.line = 1
         self.col = 1
 
-    def handle_default(self, char: str, i: int, content: str, n: int) -> int:
+    def handle_default(self, char: str, i: int, content: str, len: int) -> int:
         """默认处理逻辑：直接写入 buffer"""
         self.buffer.append(char)
         return i + 1
@@ -95,6 +95,10 @@ class LStateMachine(Generic[S, R]):
         res = "".join(self.buffer)
         self.buffer = []
         return res.strip()
+    
+    def flush_result(self) -> List[R]:
+        """返回result"""
+        return self.results
     
     def error(self, message: str):
         """抛出错误, 子类可重写以提供更多上下文"""
