@@ -2,6 +2,7 @@ from enum import Enum, auto
 from typing import List, Optional, Any
 from mylib.kit.Lparser import LParserBase
 from mylib.kit.Ltokenizer import LToken
+from mylib.kit.Lpda import ScopeDef
 from .tokenizer import SqlTokenType, SqlTokenizer
 from ..metadata import TableMeta, ColumnMeta, SchemaMeta, IndexMeta, ExtensionMeta
 
@@ -24,9 +25,13 @@ class SqlParserState(Enum):
     # 扩展相关状态
     EXPECT_EXTENSION_NAME = auto()
 
-class SqlParser(LParserBase[SqlParserState, Any]):
+class SqlScope(Enum):
+    TABLE_BODY = ScopeDef("TABLE_BODY", "(", ")", "表定义主体")
+    PAREN = ScopeDef("PAREN", "(", ")", "普通括号")
+
+class SqlParser(LParserBase[SqlParserState, Any, SqlScope]):
     def __init__(self):
-        super().__init__(SqlParserState.IDLE)
+        super().__init__(SqlParserState.IDLE, scope_enum=SqlScope)
         self.schema = SchemaMeta()
         
         # 上下文变量
@@ -175,23 +180,28 @@ class SqlParser(LParserBase[SqlParserState, Any]):
         if token.value == "(":
             self.switch_state(SqlParserState.INSIDE_TABLE_BODY)
             # 使用基类提供的 Scope 方法
-            self.enter_scope("TABLE_BODY")
+            self.enter_scope(SqlScope.TABLE_BODY)
         return None
 
     def handle_inside_table_body(self, token: LToken, i: int, tokens: List[LToken], n: int) -> Optional[int]:
         # 处理嵌套括号 (例如在 DEFAULT 表达式、CHECK 约束或类型定义中)
         if token.value == "(":
-            self.enter_scope("PAREN")
+            self.enter_scope(SqlScope.PAREN)
             return None
 
         # 检查表定义结束或嵌套结束
         if token.value == ")":
             # 获取当前作用域，决定如何处理
-            current = self.current_scope()
+            current_instance = self.current_scope()
+            if current_instance is None:
+                 self.exit_scope("UNKNOWN") # 触发错误
+                 return None
+
+            current = current_instance.definition.name
             
-            if current == "TABLE_BODY":
+            if current == SqlScope.TABLE_BODY.name:
                 # 退出 TABLE_BODY 作用域
-                self.exit_scope("TABLE_BODY")
+                self.exit_scope(SqlScope.TABLE_BODY)
                 
                 if self.current_table:
                     self.schema.tables[self.current_table.name] = self.current_table
@@ -199,9 +209,9 @@ class SqlParser(LParserBase[SqlParserState, Any]):
                 self.switch_state(SqlParserState.IDLE)
                 return None
             
-            elif current == "PAREN":
+            elif current == SqlScope.PAREN.name:
                 # 退出普通括号作用域
-                self.exit_scope("PAREN")
+                self.exit_scope(SqlScope.PAREN)
                 return None
             
             else:
