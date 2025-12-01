@@ -1,19 +1,19 @@
-from typing import Any, Optional
+from typing import Any, Optional, Type, Generic
 from mylib.kit.Lpda import LPDA
 from mylib.kit.Ltokenizer import LToken
 
-from .type import S, R
+from .type import S, R, P
 
 
-class LParserBase(LPDA[S, R]):
+class LParserBase(LPDA[S, R, P], Generic[S, R, P]):
     """
     Abstract base class for Parsers.
     解析器的抽象基类
     Inherits from LPDA (FSM + Stack) and processes a list of LToken.
     继承于 LPDA, 并处理 LToken 列表
     """
-    def __init__(self, initial_state: S):
-        super().__init__(initial_state)
+    def __init__(self, initial_state: S, scope_enum: Type[P] = None):
+        super().__init__(initial_state, scope_enum)
         self.current_token: Optional[LToken] = None
 
     def _on_step(self, item: Any):
