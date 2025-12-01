@@ -15,6 +15,7 @@ class SqlTokenizerState(Enum):
     IDENTIFIER = auto()         # 标识符模式
     IN_STRING_SINGLE = auto()   # 单引号字符串内部 '...'
     IN_STRING_DOLLAR = auto()   # Dollar 引用字符串内部 $$...$$
+    IN_QUOTED_IDENTIFIER = auto() # 双引号引用标识符 "..."
     IN_COMMENT_LINE = auto()    # 单行注释内部 -- ...
     IN_COMMENT_BLOCK = auto()   # 块注释内部 /* ... */
 
@@ -23,18 +24,18 @@ class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
         super().__init__(SqlTokenizerState.IDLE)
         self.dollar_tag = ""
 
-    def handle_idle(self, char: str, i: int, content: str, n: int) -> Optional[int]:
+    def handle_idle(self, char: str, i: int, content: str, len: int) -> Optional[int]:
         # 跳过空白字符
         if char.isspace():
             return None
 
         # 检查单行注释开始 --
-        if char == '-' and i + 1 < n and content[i+1] == '-':
+        if char == '-' and i + 1 < len and content[i+1] == '-':
             self.switch_state(SqlTokenizerState.IN_COMMENT_LINE)
             return i + 2 # 跳过 --
 
         # 检查块注释开始 /*
-        if char == '/' and i + 1 < n and content[i+1] == '*':
+        if char == '/' and i + 1 < len and content[i+1] == '*':
             self.switch_state(SqlTokenizerState.IN_COMMENT_BLOCK)
             return i + 2
 
@@ -42,6 +43,12 @@ class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
         if char == "'":
             self.switch_state(SqlTokenizerState.IN_STRING_SINGLE)
             self.mark_start() # 标记 Token 开始位置
+            return None
+
+        # 检查双引号引用标识符开始 "
+        if char == '"':
+            self.switch_state(SqlTokenizerState.IN_QUOTED_IDENTIFIER)
+            self.mark_start()
             return None
 
         # 检查 Dollar 引用字符串开始 $
@@ -71,7 +78,7 @@ class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
         # 其他字符 -> 进入标识符模式
         self.switch_state(SqlTokenizerState.IDENTIFIER)
         self.mark_start()
-        self.buffer.append(char)
+        self.append_buffer(char)
         return None
 
     def handle_identifier(self, char: str, i: int, content: str, n: int) -> Optional[int]:
@@ -83,6 +90,8 @@ class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
         elif char in "(),;":
             is_separator = True
         elif char == "'":
+            is_separator = True
+        elif char == '"':
             is_separator = True
         elif char == '$':
             is_separator = True
@@ -96,21 +105,21 @@ class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
             self.switch_state(SqlTokenizerState.IDLE)
             return i # 重新处理当前字符 (交给 IDLE)
             
-        self.buffer.append(char)
+        self.append_buffer(char)
         return None
 
     def handle_in_string_single(self, char: str, i: int, content: str, n: int) -> Optional[int]:
         if char == "'":
             # 检查转义引号 '' (SQL 标准转义)
             if i + 1 < n and content[i+1] == "'":
-                self.buffer.append("'")
+                self.append_buffer("'")
                 return i + 2
             else:
                 # 字符串结束
                 self.emit(SqlTokenType.STRING)
                 self.switch_state(SqlTokenizerState.IDLE)
                 return None
-        self.buffer.append(char)
+        self.append_buffer(char)
         return None
 
     def handle_in_string_dollar(self, char: str, i: int, content: str, n: int) -> Optional[int]:
@@ -120,7 +129,7 @@ class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
                 self.emit(SqlTokenType.STRING)
                 self.switch_state(SqlTokenizerState.IDLE)
                 return i + len(self.dollar_tag)
-        self.buffer.append(char)
+        self.append_buffer(char)
         return None
 
     def handle_in_comment_line(self, char: str, i: int, content: str, n: int) -> Optional[int]:
@@ -132,6 +141,20 @@ class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
         if char == '*' and i + 1 < n and content[i+1] == '/':
             self.switch_state(SqlTokenizerState.IDLE)
             return i + 2
+        return None
+
+    def handle_in_quoted_identifier(self, char: str, i: int, content: str, n: int) -> Optional[int]:
+        if char == '"':
+            # 检查转义引号 ""
+            if i + 1 < n and content[i+1] == '"':
+                self.append_buffer('"')
+                return i + 2
+            else:
+                # 引用标识符结束
+                self.emit(SqlTokenType.IDENTIFIER)
+                self.switch_state(SqlTokenizerState.IDLE)
+                return None
+        self.append_buffer(char)
         return None
 
     def _emit_identifier(self):
@@ -154,3 +177,5 @@ class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
     def on_finish(self):
         if self.state == SqlTokenizerState.IDENTIFIER:
             self._emit_identifier()
+        elif self.state in (SqlTokenizerState.IN_STRING_SINGLE, SqlTokenizerState.IN_STRING_DOLLAR, SqlTokenizerState.IN_QUOTED_IDENTIFIER, SqlTokenizerState.IN_COMMENT_BLOCK):
+            raise ValueError(f"Unexpected end of input in state {self.state.name}")
