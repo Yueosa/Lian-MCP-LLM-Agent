@@ -1,4 +1,4 @@
-from .token import LToken, TokenType
+from .token import LToken
 from .base import LTokenizerBase
 
-__all__ = ["LToken", "TokenType", "LTokenizerBase"]
+__all__ = ["LToken", "LTokenizerBase"]
