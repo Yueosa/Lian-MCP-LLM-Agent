@@ -38,16 +38,16 @@ class LStateMachine(Generic[S, R]):
         """
         self._reset()
         
-        len = len(content)
+        n = len(content)
         i = 0
-        while i < len:
+        while i < n:
             item = content[i]
             
             self._on_step(item)
 
             # 动态分发到 handle_{state_name} 方法
             handler = getattr(self, f"handle_{self.state.name.lower()}", self.handle_default)
-            new_i = handler(item, i, content, len)
+            new_i = handler(item, i, content, n)
             
             if new_i is not None:
                 i = new_i
