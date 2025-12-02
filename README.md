@@ -270,3 +270,18 @@ uv run python tests/{TEST_FILE_NAME}
 | `Loutput.test.py`                | **终端输出测试**<br>展示 Loutput 库的各种颜色、样式和特效输出能力。                               | `uv run python tests/Loutput.test.py`                |
 | `psql_connect.test.py`           | **数据库连接测试**<br>测试 PostgreSQL 数据库的连接状态，并列出所有公共表。                        | `uv run python tests/psql_connect.test.py`           |
 | `rgb_demo.py`                    | **RGB 颜色演示**<br>展示 RGBColor 和 ANSItoRGB 工具的高级色彩处理能力。                           | `uv run python tests/rgb_demo.py`                    |
+
+---
+
+## 🐷 小猪话
+
+> 开发过程中留下的感悟, 其实一直都没有记录... ...丢掉了好多有趣的想法
+
+#### 📅 2025-11-24 
+
+- 完了完了我的开发习惯疑似有点太极端了，再这么下去开发不完了呀！
+
+#### 📅 2025-12-02
+
+- 整个项目的规模已经达到 48 个目录 144 个文件了...有时候我自己都记不清哪些文件是干嘛的
+- `lian_orm` 我是真喜欢, 但目前时间不够了...只能暂时留着等以后重构
