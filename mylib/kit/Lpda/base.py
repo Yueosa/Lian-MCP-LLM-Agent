@@ -15,14 +15,15 @@ class LPDA(LStateMachine[S, R], Generic[S, R, P]):
     
     def __init__(self, initial_state: S, scope_enum: Type[P] = None):
         super().__init__(initial_state)
-        self.stack = Lstack() # Stack stores ScopeInstance objects
+        self.stack = Lstack()
         self.scope_definitions: Dict[str, ScopeDef] = {}
         self.scope_enum = scope_enum
         
         if scope_enum:
             for member in scope_enum:
                 if isinstance(member.value, ScopeDef):
-                    self.scope_definitions[member.name] = member.value
+                    # self.scope_definitions[member.name] = member.value
+                    self.define_scope(member.name, member.value.start_token, member.value.end_token, member.value.description)
 
     def _reset(self):
         super()._reset()

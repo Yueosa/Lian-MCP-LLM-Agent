@@ -44,6 +44,85 @@ Schema 管理器，提供对 Schema 元数据的统一访问接口。
 - **parse_file(file_path)**: 解析 SQL 文件。
 - **parse_string(content)**: 解析 SQL 字符串。
 
+##### (1) 初始状态 IDLE
+
+- 查找 **CREATE** 关键字, 如果为 `True`: 
+    - 向前查看下一个 `token`
+    1. 如果是 **TABLE**: 切换到 **EXPECT_TABLE_NAME**
+    2. 跳过 **OR**
+    3. 如果是 **UNIQUE**: 在上下文中标注 `index_unique`, 切换到 **EXPECT_INDEX_NAME**
+    4. 如果是 **INDEX**: 切换到 **EXPECT_INDEX_NAME**
+    5. 如果是 **EXTENSION**: 切换到 **EXPECT_EXTENSION_NAME**
+
+##### (2) 扩展状态 EXPECT_EXTENSION_NAME
+
+1. 消耗 **IF**, **NOT**, **EXISTS**
+2. 找到拓展名, 去除引号, 并创建一个 **ExtensionMeta**
+3. 切换到 **IDLE**
+
+##### (3-1) 索引状态 EXPECT_INDEX_NAME
+
+1. 消耗 **IF**, **NOT**, **EXISTS**
+2. 找到索引名, 去除引号, 并在上下文 `self.context` 添加一个 `{"current_index": IndexMeta}` (用于暂存)
+3. 切换到 **EXPECT_INDEX_ON**
+
+##### (3-2) 索引状态 EXPECT_INDEX_ON
+
+- 必须出现 **ON** 关键字: 切换到 **EXPECT_INDEX_TABLE**
+
+##### (3-3) 索引状态 EXPECT_INDEX_TABLE
+
+1. 捕获下一个标识符为表名, 将表名更新到 `self.context`
+2. 切换到 **EXPECT_INDEX_USING**
+
+##### (3-4) 索引状态 EXPECT_INDEX_USING
+
+- 如果有 **USING**
+    - 向前查看下一个 token 作为方法名, 更新 `self.context`
+- 如果是 **(**
+    - 切换到 **EXPECT_INDEX_COLUMNS**
+
+##### (3-5) 索引状态 **EXPECT_INDEX_COLUMNS**
+
+1. 收集所有 **()** 内部的信息, 暂存到 `self.context`
+2. 如果表名存在于 `schema`, 进行自动挂载
+3. 清空 `self.context.current_index`
+4. 切换到 **IDLE**
+
+##### (4-1) 表状态 EXPECT_TABLE_NAME
+
+1. 消耗 **IF**, **NOT**, **EXISTS**
+2. 提取表名创建一个 `TableMeta`, 暂存到 `self.context`
+3. 切换到 **EXPECT_TABLE_OPEN_PAREN**
+
+##### (4-2) 表状态 EXPECT_TABLE_OPEN_PAREN
+
+- 如果遇到 **(**: 切换到 **INSIDE_TABLE_BODY**, 进入作用域 **TABLE_BODY**
+
+##### (4-3) 表状态 INSIDE_TABLE_PAREN
+
+- 如果遇到 **(**: 进入作用域 **PARENT**
+- 如果遇到 **)**: 查看当前作用域:
+    - 无作用域: 抛出错误
+    - **TABLE_BODY**: 退出作用域, 注册`self.schema`, 注销上下文, 切换到 **IDLE**
+    - **PARENT**: 退出普通作用域
+    - 未知状态: 抛出错误
+- 跳过 ","
+- **列定义**:
+    - 遇到关键字 (CONSTRAINT, PRIMARY, FOREIGN, CHECK, UNIQUE): 暂时跳过
+    - 遇到标识符: 调用 `_parse_column_definition` 解析列定义
+
+##### (4-4) 列定义解析 _parse_column_definition
+
+1. 提取列名
+2. 提取列类型 (处理类型参数如 `VARCHAR(255)`)
+3. 循环解析列约束:
+    - **PRIMARY KEY**: 标记主键
+    - **NOT NULL**: 标记非空
+    - **DEFAULT**: 提取默认值
+    - **REFERENCES**: 提取外键引用
+4. 将列元数据添加到 `self.context.current_table`
+
 ### (4) SqlTokenizer
 
 > 位于 `schema/localfile/tokenizer.py`
