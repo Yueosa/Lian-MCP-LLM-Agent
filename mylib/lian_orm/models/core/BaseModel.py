@@ -219,6 +219,43 @@ class RelationalModel(BaseModel):
             return s[:length] + "..."
         return s
     
+    def to_dict_with_relations(self, include_relations: Optional[List[str]] = None) -> Dict[str, Any]:
+        """导出包含关联对象的字典
+        
+        Args:
+            include_relations: 要包含的关系列表，None表示包含所有已加载的关系
+            
+        Returns:
+            包含关联对象的字典
+        """
+        # 1. 导出基本字段
+        data = self.model_dump()
+        
+        # 2. 确定要导出的关系
+        if include_relations is None:
+            relations_to_export = list(self._related_cache.keys())
+        else:
+            relations_to_export = [r for r in include_relations if r in self._related_cache]
+            
+        # 3. 导出关联对象
+        for relation_name in relations_to_export:
+            related_obj = self._related_cache[relation_name]
+            
+            if related_obj is None:
+                data[relation_name] = None
+            elif isinstance(related_obj, list):
+                # 列表中的对象可能是 RelationalModel 或其他
+                data[relation_name] = [
+                    obj.to_dict_with_relations() if isinstance(obj, RelationalModel) else obj 
+                    for obj in related_obj
+                ]
+            elif isinstance(related_obj, RelationalModel):
+                data[relation_name] = related_obj.to_dict_with_relations()
+            else:
+                data[relation_name] = related_obj
+                
+        return data
+    
     class Config:
         """Pydantic 配置"""
         arbitrary_types_allowed = True

@@ -36,6 +36,7 @@
         - [(3) set\_related\_object(self, field\_name: str, obj: RelaredData) -\> None](#3-set_related_objectself-field_name-str-obj-relateddata---none)
         - [(4) clear\_related\_object(self) -\> None](#4-clear_related_objectself---none)
         - [(5) has\_related\_object(self, filed\_name: str) -\> bool](#5-has_related_objectself-filed_name-str---bool)
+        - [(6) to\_dict\_with\_relations(self, include\_relations: Optional[List[str]] = None) -\> Dict[str, Any]](#6-to_dict_with_relationsself-include_relations-optionalliststr--none---dictstr-any)
       - [静态方法](#静态方法)
         - [(1) \_truncate(value: Any, length: int = 30) -\> str](#1-_truncatevalue-any-length-int--30---str)
   - [模型](#模型)
@@ -210,6 +211,13 @@
 > 检查某个关系对象是否加载
 
 - 检查 -> `field_name` 是否存在于 `_related_cache`
+
+##### (6) to_dict_with_relations(self, include_relations: Optional[List[str]] = None) -> Dict[str, Any]
+
+> 导出包含关联对象的字典
+
+- **include_relations**: 指定要导出的关系列表，默认为 None (导出所有已加载关系)
+- 返回 -> 包含基本字段和关联对象的字典
 
 #### 静态方法
 

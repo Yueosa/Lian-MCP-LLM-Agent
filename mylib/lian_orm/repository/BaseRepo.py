@@ -368,10 +368,10 @@ class BaseRepo(ABC, Generic[T]):
             from . import MemoryLogRepo, TasksRepo, TaskStepsRepo, ToolCallsRepo
             
             repo_map = {
-                'MemoryLog': MemoryLogRepo.MemoryLogRepo,
-                'Task': TasksRepo.TasksRepo,
-                'TaskStep': TaskStepsRepo.TaskStepsRepo,
-                'ToolCall': ToolCallsRepo.ToolCallsRepo,
+                'MemoryLog': MemoryLogRepo,
+                'Task': TasksRepo,
+                'TaskStep': TaskStepsRepo,
+                'ToolCall': ToolCallsRepo,
             }
             
             repo_class = repo_map.get(model_name)
