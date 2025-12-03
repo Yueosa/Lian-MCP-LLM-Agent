@@ -18,6 +18,4 @@ T = TypeVar("T", bound="RelationalModel")
 # 1. 单个模型实例 (例如 TaskStep.task -> Task)
 # 2. 模型实例列表 (例如 Task.task_steps -> List[TaskStep])
 # 3. None (未加载或无关联)
-#
-# 使用字符串 "RelationalModel" 是为了避免循环导入
 RelatedData = Union["RelationalModel", List["RelationalModel"], None]

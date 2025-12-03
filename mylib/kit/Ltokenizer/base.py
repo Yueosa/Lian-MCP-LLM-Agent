@@ -1,5 +1,4 @@
 from typing import Any
-from enum import Enum
 from mylib.kit.Lfsm.machine import LStateMachine
 from .token import LToken
 from .type import S
