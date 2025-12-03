@@ -8,7 +8,7 @@
 from typing import Dict, List, Optional, Any
 from pydantic import BaseModel
 
-from .Enum import relationship, on_update, on_delete
+from mylib.kernel.Lenum import Relationship, OnUpdate, OnDelete
 from .Type import RelatedData
 
 
@@ -20,11 +20,11 @@ class RelationshipField:
     
     def __init__(self, 
                     to: str, 
-                    relationship_type: relationship = relationship.one_to_many,
+                    relationship_type: Relationship = Relationship.ONE_TO_MANY,
                     back_populates: Optional[str] = None,
                     foreign_key: Optional[str] = None,
-                    on_update: on_delete = on_update.CASCADE,
-                    on_delete: on_delete = on_delete.CASCADE):
+                    on_update: OnUpdate = OnUpdate.CASCADE,
+                    on_delete: OnDelete = OnDelete.CASCADE):
         """初始化关系字段
         
         Args:

@@ -4,19 +4,19 @@ from enum import Enum
 # ========================
 # 数据表 日志表 memory_log
 # ========================
-class memory_log_role(Enum):
+class MemoryLogRole(Enum):
     """
     user: 用户
     assistant: 管理员
     system: 系统
     llm: 大模型
     """
-    user = 'user'
-    assistant = 'assistant'
-    system = 'system'
-    llm = 'llm'
+    USER = 'user'
+    ASSISTANT = 'assistant'
+    SYSTEM = 'system'
+    LLM = 'llm'
 
-class memory_log_memory_type(Enum):
+class MemoryLogMemoryType(Enum):
     """
     conversation: 对话
     summary: 总结
@@ -24,61 +24,61 @@ class memory_log_memory_type(Enum):
     preference: 偏好
     plan: 计划
     """
-    conversation = 'conversation'
-    summary = 'summary'
-    reflection = 'reflection'
-    preference = 'preference'
-    plan = 'plan'
+    CONVERSATION = 'conversation'
+    SUMMARY = 'summary'
+    REFLECTION = 'reflection'
+    PREFERENCE = 'preference'
+    PLAN = 'plan'
 
 
 # ===================
 # 数据表 任务表 tasks
 # ===================
-class tasks_status(Enum):
+class TasksStatus(Enum):
     """
     pending: 待处理
     running: 运行中
     done: 已完成
     failed: 失败
     """
-    pending = 'pending'
-    running = 'running'
-    done = 'done'
-    failed = 'failed'
+    PENDING = 'pending'
+    RUNNING = 'running'
+    DONE = 'done'
+    FAILED = 'failed'
 
 
 # ===========================
 # 数据表 任务步骤表 task_steps
 # ===========================
-class task_steps_status(Enum):
+class TaskStepsStatus(Enum):
     """
     pending: 待处理
     running: 运行中
     done: 已完成
     failed: 失败
     """
-    pending = 'pending'
-    running = 'running'
-    done = 'done'
-    failed = 'failed'
+    PENDING = 'pending'
+    RUNNING = 'running'
+    DONE = 'done'
+    FAILED = 'failed'
 
 
 # ===========================
 # 数据表 工具调用表 tool_calls
 # ===========================
-class tool_calls_status(Enum):
+class ToolCallsStatus(Enum):
     """
     success: 成功
     failed: 失败
     """
-    success = 'success'
-    failed = 'failed'
+    SUCCESS = 'success'
+    FAILED = 'failed'
 
 
 # =====================
 # 外键更新策略 on_update
 # =====================
-class on_update(Enum):
+class OnUpdate(Enum):
     """
     CASCADE: 跟随更新
     SET_NULL: 置为空值
@@ -94,7 +94,7 @@ class on_update(Enum):
 # =====================
 # 外键删除策略 on_delete
 # =====================
-class on_delete(Enum):
+class OnDelete(Enum):
     """
     CASCADE: 跟随删除
     SET_NULL: 置为空值
@@ -110,12 +110,12 @@ class on_delete(Enum):
 # ==========================
 # 外键关系 relationship_type
 # ==========================
-class relationship(Enum):
+class Relationship(Enum):
     """
     one_to_one: 一对一
     one_to_mant: 一对多
     many_to_one: 多对一
     """
-    one_to_one = 'one_to_one'
-    one_to_many = 'one_to_many'
-    many_to_one = 'many_to_one'
+    ONE_TO_ONE = 'one_to_one'
+    ONE_TO_MANY = 'one_to_many'
+    MANY_TO_ONE = 'many_to_one'

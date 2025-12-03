@@ -3,7 +3,7 @@ from enum import Enum
 from mylib.kit.Lfsm.machine import LStateMachine
 from mylib.kit.Lstack import Lstack
 from .scope import ScopeDef, ScopeInstance
-from .type import S, R, P
+from mylib.kernel.Ltypevar import S, R, P
 
 class LPDA(LStateMachine[S, R], Generic[S, R, P]):
     """

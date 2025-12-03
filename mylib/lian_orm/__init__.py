@@ -4,14 +4,14 @@ from .models import (
     Task, 
     TaskStep, 
     ToolCall,
-    memory_log_role,
-    memory_log_memory_type,
-    tasks_status,
-    task_steps_status,
-    tool_calls_status,
-    on_update,
-    on_delete,
-    relationship
+    MemoryLogRole,
+    MemoryLogMemoryType,
+    TasksStatus,
+    TaskStepsStatus,
+    ToolCallsStatus,
+    OnUpdate,
+    OnDelete,
+    Relationship,
 )
 
 __all__ = [
@@ -20,12 +20,12 @@ __all__ = [
     "Task", 
     "TaskStep", 
     "ToolCall",
-    "memory_log_role",
-    "memory_log_memory_type",
-    "tasks_status",
-    "task_steps_status",
-    "tool_calls_status",
-    "on_update",
-    "on_delete",
-    "relationship"
+    "MemoryLogRole",
+    "MemoryLogMemoryType",
+    "TasksStatus",
+    "TaskStepsStatus",
+    "ToolCallsStatus",
+    "OnUpdate",
+    "OnDelete",
+    "Relationship",
 ]

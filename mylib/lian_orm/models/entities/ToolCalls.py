@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Dict, Any, Optional, TYPE_CHECKING
 from pydantic import Field
-from ..core.Enum import tool_calls_status
+from mylib.kernel.Lenum import ToolCallsStatus
 from ..core.BaseModel import RelationalModel, RelationshipField
 
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ class ToolCall(RelationalModel):
     tool_name: str = Field(default="", description="工具名称")
     arguments: Dict[str, Any] = Field(default_factory=dict, description="工具调用参数")
     response: Dict[str, Any] = Field(default_factory=dict, description="工具响应结果")
-    status: tool_calls_status = Field(default=tool_calls_status.success, description="执行状态")
+    status: ToolCallsStatus = Field(default=ToolCallsStatus.SUCCESS, description="执行状态")
     created_at: datetime = Field(default_factory=datetime.now, description="创建时间")
     
     # 关系定义

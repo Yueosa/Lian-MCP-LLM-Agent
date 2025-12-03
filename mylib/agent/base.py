@@ -1,11 +1,8 @@
 # 所有 LLM 的基类
-from typing import List, Dict, Generic, TypeVar, Type
+from typing import List, Dict, Generic, Type
 
-from .Enum import LLMRole, LLMStatus
-
-
-ReqT = TypeVar("ReqT")
-ResT = TypeVar("ResT")
+from mylib.kernel.Lenum import LLMRole, LLMStatus
+from mylib.kernel.Ltypevar import ReqT, ResT
 
 
 class LLMBaseAgent(Generic[ReqT, ResT]):

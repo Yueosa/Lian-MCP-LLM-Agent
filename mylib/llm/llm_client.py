@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 from mylib.config import ConfigLoader
 from mylib.kit import Loutput
 from mylib.kit.Lfind import get_embedding
-from mylib.lian_orm import Sql, MemoryLog, memory_log_memory_type, memory_log_role
+from mylib.lian_orm import Sql, MemoryLog, MemoryLogRole, MemoryLogMemoryType
 
 RESET = "\033[0m"
 BOLD = "\033[1m"
@@ -147,7 +147,7 @@ TOOL_CALL_END
         except Exception as e:
             return f"LLM调用错误: {str(e)}"
     
-    def _save_memory_log(self, role: memory_log_role, content: str):
+    def _save_memory_log(self, role: MemoryLogRole, content: str):
         """生成并保存记忆日志"""
         if not content:
             return
@@ -161,7 +161,7 @@ TOOL_CALL_END
                 role=role,
                 content=content,
                 embedding=embedding,
-                memory_type=memory_log_memory_type.conversation
+                memory_type=MemoryLogMemoryType.CONVERSATION
             )
             
             self.sql.Create_memory_log(log)
@@ -192,15 +192,15 @@ TOOL_CALL_END
                 final_answer = llm_response.replace("TOOL_CALL_END", "").strip()
                 
                 # 保存记忆
-                self._save_memory_log(memory_log_role.user, user_input)
-                self._save_memory_log(memory_log_role.llm, final_answer)
+                self._save_memory_log(MemoryLogRole.USER, user_input)
+                self._save_memory_log(MemoryLogRole.LLM, final_answer)
                 
                 return final_answer
             
             if "TOOL_CALL:" not in llm_response:
                 # 保存记忆
-                self._save_memory_log(memory_log_role.user, user_input)
-                self._save_memory_log(memory_log_role.llm, llm_response)
+                self._save_memory_log(MemoryLogRole.USER, user_input)
+                self._save_memory_log(MemoryLogRole.LLM, llm_response)
                 
                 return llm_response
             

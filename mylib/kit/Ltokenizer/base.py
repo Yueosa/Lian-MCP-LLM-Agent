@@ -1,7 +1,8 @@
 from typing import Any
 from mylib.kit.Lfsm.machine import LStateMachine
 from .token import LToken
-from .type import S
+from mylib.kernel.Ltypevar import S
+
 
 class LTokenizerBase(LStateMachine[S, LToken]):
     """

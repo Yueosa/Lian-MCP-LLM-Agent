@@ -1,6 +1,6 @@
 from typing import Generic, List, Any, Dict
 
-from .type import S, R
+from mylib.kernel.Ltypevar import S, R
 
 class LStateMachine(Generic[S, R]):
     """

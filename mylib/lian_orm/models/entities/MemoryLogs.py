@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 from pydantic import Field
-from ..core.Enum import memory_log_role, memory_log_memory_type
+from mylib.kernel.Lenum import MemoryLogMemoryType, MemoryLogRole
 from ..core.BaseModel import RelationalModel
 
 
@@ -12,10 +12,10 @@ class MemoryLog(RelationalModel):
     
     id: Optional[int] = Field(None, description="主键 ID")
     user_id: str = Field(default="default", description="用户 ID")
-    role: memory_log_role = Field(..., description="角色 (user/assistant/system/llm) ")
+    role: MemoryLogRole = Field(..., description="角色 (user/assistant/system/llm) ")
     content: str = Field(default="", description="内容")
     embedding: Optional[List[float]] = Field(default=None, description="向量嵌入 (pgvector) ")
-    memory_type: memory_log_memory_type = Field(..., description="记忆类型 (conversation/summary/reflection/preference/plan)")
+    memory_type: MemoryLogMemoryType = Field(..., description="记忆类型 (conversation/summary/reflection/preference/plan)")
     importance: float = Field(default=0.5, description="重要性评分 (0-1) ")
     created_at: datetime = Field(default_factory=datetime.now, description="创建时间")
     

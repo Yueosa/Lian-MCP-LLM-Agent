@@ -2,7 +2,7 @@ from typing import Any, Optional, Type, Generic
 from mylib.kit.Lpda import LPDA
 from mylib.kit.Ltokenizer import LToken
 
-from .type import S, R, P
+from mylib.kernel.Ltypevar import S, R, P
 
 
 class LParserBase(LPDA[S, R, P], Generic[S, R, P]):

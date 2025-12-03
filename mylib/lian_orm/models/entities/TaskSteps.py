@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 from pydantic import Field
-from ..core.Enum import task_steps_status
+from mylib.kernel.Lenum import TaskStepsStatus
 from ..core.BaseModel import RelationalModel, RelationshipField
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ class TaskStep(RelationalModel):
     step_index: int = Field(default=0, description="步骤序号")
     instruction: str = Field(default="", description="步骤指令")
     output: Optional[str] = Field(default=None, description="步骤输出结果")
-    status: task_steps_status = Field(default=task_steps_status.pending, description="步骤状态")
+    status: TaskStepsStatus = Field(default=TaskStepsStatus.PENDING, description="步骤状态")
     created_at: datetime = Field(default_factory=datetime.now, description="创建时间")
     updated_at: datetime = Field(default_factory=datetime.now, description="更新时间")
     
