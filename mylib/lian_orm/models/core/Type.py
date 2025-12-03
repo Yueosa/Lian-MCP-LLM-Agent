@@ -3,6 +3,7 @@ from typing import TypeVar, Union, List, TYPE_CHECKING
 if TYPE_CHECKING:
     from .BaseModel import RelationalModel
 
+
 # ============================================
 # ModelType: 泛型变量
 # ============================================

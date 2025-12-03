@@ -25,5 +25,8 @@ await tool.write("test.txt", "content")  # 写入 /tmp/test.txt
 from .file import FileTool
 from .metadata import TOOL_METADATA
 
-__all__ = ["FileTool", "TOOL_METADATA"]
 
+__all__ = [
+    "FileTool",
+    "TOOL_METADATA",
+]

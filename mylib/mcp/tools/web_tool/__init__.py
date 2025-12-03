@@ -12,5 +12,8 @@
 from .metadata import TOOL_METADATA
 from .web import WebTool
 
-__all__ = ["WebTool", "TOOL_METADATA"]
 
+__all__ = [
+    "WebTool",
+    "TOOL_METADATA",
+]

@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Optional
+
 from mylib.config import ConfigLoader
+
 
 def load_sql_config(config_path: Optional[str] = None):
     """加载 SQL 配置文件"""

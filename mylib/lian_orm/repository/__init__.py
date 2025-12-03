@@ -8,5 +8,5 @@ __all__ = [
     "MemoryLogRepo",
     "TasksRepo",
     "TaskStepsRepo",
-    "ToolCallsRepo"
+    "ToolCallsRepo",
 ]

@@ -1,10 +1,6 @@
 from typing import Any, List, Optional, Tuple, Union
 
-from .Enum import (
-    TextEffect,
-    FontColor8,
-    Background8,
-)
+from .Enum import TextEffect, FontColor8, Background8
 
 
 class StyleProcessor:

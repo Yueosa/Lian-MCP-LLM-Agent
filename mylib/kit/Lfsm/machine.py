@@ -2,6 +2,7 @@ from typing import Generic, List, Any, Dict
 
 from mylib.kernel.Ltypevar import S, R
 
+
 class LStateMachine(Generic[S, R]):
     """
     Lian Finite State Machine (Lfsm) 通用基类

@@ -1,9 +1,9 @@
 """MCP Server - FastAPI 服务器实现"""
 
+import uvicorn
+
 from pathlib import Path
 from typing import Any, Dict, List
-
-import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 

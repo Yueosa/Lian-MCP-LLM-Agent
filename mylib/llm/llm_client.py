@@ -1,11 +1,13 @@
 import json
 import requests
+
 from typing import List, Dict, Any
 
 from mylib.config import ConfigLoader
 from mylib.kit import Loutput
 from mylib.kit.Lfind import get_embedding
 from mylib.lian_orm import Sql, MemoryLog, MemoryLogRole, MemoryLogMemoryType
+
 
 RESET = "\033[0m"
 BOLD = "\033[1m"

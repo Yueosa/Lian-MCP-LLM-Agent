@@ -1,6 +1,8 @@
 from enum import Enum, auto
 from typing import Optional
+
 from mylib.kit.Ltokenizer import LTokenizerBase
+
 
 class SqlTokenType(Enum):
     KEYWORD = auto()      # 关键字
@@ -10,6 +12,7 @@ class SqlTokenType(Enum):
     COMMENT = auto()      # 注释 (可选发射)
     WHITESPACE = auto()   # 空白 (可选发射)
 
+
 class SqlTokenizerState(Enum):
     IDLE = auto()               # 空闲模式
     IDENTIFIER = auto()         # 标识符模式
@@ -18,6 +21,7 @@ class SqlTokenizerState(Enum):
     IN_QUOTED_IDENTIFIER = auto() # 双引号引用标识符 "..."
     IN_COMMENT_LINE = auto()    # 单行注释内部 -- ...
     IN_COMMENT_BLOCK = auto()   # 块注释内部 /* ... */
+
 
 class SqlTokenizer(LTokenizerBase[SqlTokenizerState]):
     def __init__(self):

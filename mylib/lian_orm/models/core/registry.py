@@ -1,5 +1,6 @@
 from .BaseModel import RelationalModel
 
+
 def auto_initialize_models():
     """自动发现并初始化所有 RelationalModel 的子类"""
     models = RelationalModel.__subclasses__()

@@ -1,6 +1,7 @@
+from enum import Enum
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Dict, Generic, Type
-from enum import Enum
+
 from ..database.client import DatabaseClient
 from ..mapper.converter import DataConverter
 from ..models.core.BaseModel import RelationalModel

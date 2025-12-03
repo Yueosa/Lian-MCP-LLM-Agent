@@ -1,5 +1,5 @@
-from .BaseRepo import BaseRepo
 from ..models import MemoryLog
+from .BaseRepo import BaseRepo
 
 
 class MemoryLogRepo(BaseRepo):

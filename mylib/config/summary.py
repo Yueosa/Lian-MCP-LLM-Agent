@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
+from mylib.kit import Loutput
+
 if TYPE_CHECKING:
     from .loader import ConfigLoader
-
-from mylib.kit import Loutput
 
 
 class Summary:

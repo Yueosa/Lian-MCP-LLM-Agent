@@ -1,7 +1,7 @@
 from typing import Any, Optional, Type, Generic
+
 from mylib.kit.Lpda import LPDA
 from mylib.kit.Ltokenizer import LToken
-
 from mylib.kernel.Ltypevar import S, R, P
 
 

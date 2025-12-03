@@ -9,10 +9,11 @@ from pydantic import BaseModel
 
 class ToolResponse(BaseModel):
     """统一的工具调用响应"""
-
     result: Optional[Any] = None
     success: bool
     error: Optional[str] = None
 
 
-__all__ = ["ToolResponse"]
+__all__ = [
+    "ToolResponse",
+]

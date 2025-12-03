@@ -1,5 +1,6 @@
-from dataclasses import dataclass
 from enum import Enum, auto
+from dataclasses import dataclass
+
 
 class TokenType(Enum):
     """
@@ -16,6 +17,7 @@ class TokenType(Enum):
     """
     UNKNOWN = auto()
     EOF = auto()
+
 
 @dataclass
 class LToken:

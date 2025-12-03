@@ -1,9 +1,12 @@
-from typing import Optional, Dict, Any, Type, Generic, Union
 from enum import Enum
+from typing import Optional, Dict, Any, Type, Generic, Union
+
 from mylib.kit.Lfsm.machine import LStateMachine
 from mylib.kit.Lstack import Lstack
-from .scope import ScopeDef, ScopeInstance
 from mylib.kernel.Ltypevar import S, R, P
+
+from .scope import ScopeDef, ScopeInstance
+
 
 class LPDA(LStateMachine[S, R], Generic[S, R, P]):
     """

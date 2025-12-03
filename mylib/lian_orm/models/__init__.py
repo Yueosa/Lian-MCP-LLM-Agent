@@ -24,7 +24,9 @@ from .entities import (
     MemoryLog
 )
 
+
 auto_initialize_models()
+
 
 __all__ = [
     # Core
@@ -47,5 +49,5 @@ __all__ = [
     "Task",
     "TaskStep",
     "ToolCall",
-    "MemoryLog"
+    "MemoryLog",
 ]

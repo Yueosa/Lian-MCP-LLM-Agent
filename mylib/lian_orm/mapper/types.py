@@ -1,5 +1,6 @@
 from typing import Any, Type
 
+
 class SQLTypeMapper:
     """SQL类型到Python类型的映射器"""
 

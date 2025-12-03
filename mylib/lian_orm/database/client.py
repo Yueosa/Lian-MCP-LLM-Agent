@@ -1,6 +1,8 @@
-from typing import Any, List, Optional, Dict
 from contextlib import contextmanager
+from typing import Any, List, Optional, Dict
+
 from .pool import PostgreSQLConnectionPool
+
 
 class DatabaseClient:
     def __init__(self, connection_pool: PostgreSQLConnectionPool):

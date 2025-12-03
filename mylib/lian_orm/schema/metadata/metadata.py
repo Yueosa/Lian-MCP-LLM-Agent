@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict
 
+
 @dataclass
 class ColumnMeta:
     """列(Column)元数据描述结构。
@@ -24,6 +25,7 @@ class ColumnMeta:
     constraints: List[str] = field(default_factory=list)
     description: Optional[str] = None
 
+
 @dataclass
 class IndexMeta:
     """索引(Index)元数据描述结构。
@@ -43,6 +45,7 @@ class IndexMeta:
     unique: bool = False
     definition: str = "" # 原始定义语句
 
+
 @dataclass
 class TableMeta:
     """表(Table)元数据结构。
@@ -60,6 +63,7 @@ class TableMeta:
     primary_key: List[str] = field(default_factory=list)
     comment: Optional[str] = None
 
+
 @dataclass
 class ExtensionMeta:
     """ SQL 扩展(Extension)元数据。
@@ -71,6 +75,7 @@ class ExtensionMeta:
     """
     name: str
     if_not_exists: bool = True
+
 
 @dataclass
 class SchemaMeta:

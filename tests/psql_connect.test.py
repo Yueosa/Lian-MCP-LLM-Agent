@@ -1,7 +1,9 @@
 import base
 
 import psycopg2
+
 from mylib import ConfigLoader
+
 
 def get_all_tables():
     cfg = ConfigLoader(config_path="../mylib/lian_orm/config/")

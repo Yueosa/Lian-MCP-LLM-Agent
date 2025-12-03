@@ -1,10 +1,12 @@
 from enum import Enum, auto
 from typing import List, Optional, Any
+
 from mylib.kit.Lparser import LParserBase
 from mylib.kit.Ltokenizer import LToken
 from mylib.kit.Lpda import ScopeDef
-from .tokenizer import SqlTokenType, SqlTokenizer
+
 from ..metadata import TableMeta, ColumnMeta, SchemaMeta, IndexMeta, ExtensionMeta
+from .tokenizer import SqlTokenType, SqlTokenizer
 
 
 class SqlParserState(Enum):

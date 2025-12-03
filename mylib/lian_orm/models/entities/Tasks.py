@@ -1,7 +1,9 @@
+from pydantic import Field
 from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
-from pydantic import Field
+
 from mylib.kernel.Lenum import TasksStatus
+
 from ..core.BaseModel import RelationalModel, RelationshipField
 
 if TYPE_CHECKING:

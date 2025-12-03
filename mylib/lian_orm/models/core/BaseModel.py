@@ -5,10 +5,11 @@
 以及在 Python 端进行关联对象的管理和访问。
 """
 
-from typing import Dict, List, Optional, Any
 from pydantic import BaseModel
+from typing import Dict, List, Optional, Any
 
 from mylib.kernel.Lenum import Relationship, OnUpdate, OnDelete
+
 from .Type import RelatedData
 
 

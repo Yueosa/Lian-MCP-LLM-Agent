@@ -1,5 +1,5 @@
-from .BaseRepo import BaseRepo
 from ..models import TaskStep
+from .BaseRepo import BaseRepo
 
 
 class TaskStepsRepo(BaseRepo):

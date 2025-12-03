@@ -3,7 +3,7 @@ from .metadata import (
     IndexMeta,
     TableMeta,
     ExtensionMeta,
-    SchemaMeta
+    SchemaMeta,
 )
 
 __all__ = [
@@ -11,5 +11,5 @@ __all__ = [
     "IndexMeta",
     "TableMeta",
     "ExtensionMeta",
-    "SchemaMeta"
+    "SchemaMeta",
 ]

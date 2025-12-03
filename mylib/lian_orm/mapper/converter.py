@@ -1,8 +1,10 @@
 import json
 from enum import Enum
 from typing import Any, Dict, Optional
+
 from ..schema.metadata import TableMeta
 from .types import SQLTypeMapper
+
 
 class DataConverter:
     @staticmethod

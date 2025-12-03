@@ -1,5 +1,6 @@
-from dataclasses import dataclass
 from typing import Any
+from dataclasses import dataclass
+
 
 @dataclass
 class ScopeDef:
@@ -14,6 +15,7 @@ class ScopeDef:
     start_token: str
     end_token: str
     description: str = ""
+
 
 @dataclass
 class ScopeInstance:

@@ -7,7 +7,7 @@ Tool - MCP 工具加载器
 import importlib
 import pkgutil
 from typing import Dict, List, Callable, Any, Optional, Tuple
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass

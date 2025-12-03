@@ -1,12 +1,13 @@
 import json
 import toml
-from typing import Any, Dict, List, Optional, Set
-from pathlib import Path
 import fnmatch
 
-from .base import ConfigDictWrapper
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
 
 from mylib.kit import Loutput
+
+from .base import ConfigDictWrapper
 
 
 class DiscoveryLoader:

@@ -6,6 +6,7 @@ import base
 
 from mylib.kit.Loutput import Loutput, FontColor8, RGBColor, ANSItoRGB
 
+
 out = Loutput()
 
 print("=" * 50)

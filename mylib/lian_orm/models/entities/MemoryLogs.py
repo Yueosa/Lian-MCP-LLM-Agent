@@ -1,7 +1,9 @@
+from pydantic import Field
 from datetime import datetime
 from typing import Optional, List
-from pydantic import Field
+
 from mylib.kernel.Lenum import MemoryLogMemoryType, MemoryLogRole
+
 from ..core.BaseModel import RelationalModel
 
 

@@ -1,5 +1,6 @@
-from typing import List, Optional, TextIO, Union
 import sys
+
+from typing import List, Optional, TextIO, Union
 from enum import Enum
 
 from .processor import StyleProcessor
