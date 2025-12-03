@@ -51,12 +51,6 @@ By - Lian - 2025
 - **Database**: 封装连接池与原子操作客户端
 - **ORM**: 统一入口与资源管理
 
-**功能特性**:
-- 完整的 CRUD 操作与事务支持
-- 自动化的关联对象加载 (解决 N+1 问题)
-- 复杂的 JOIN 查询支持
-- 完善的类型提示与 Pydantic 集成
-
 **📚 文档中心**:
 - [LianORM 模块使用文档](mylib/lian_orm/docs/README.md)
 - [数据模型 (Models)](mylib/lian_orm/docs/models.md) | [元数据 (Schema)](mylib/lian_orm/docs/schema.md) | [类型映射 (Mapper)](mylib/lian_orm/docs/mapper.md)
@@ -65,7 +59,7 @@ By - Lian - 2025
 
 ### 🔌 (2) 工具层: MCP Server --done--
 
-基于 FastAPI 实现的工具聚合服务器，提供统一的工具发现与调用接口
+> 基于 FastAPI 实现的工具聚合服务器，提供统一的工具发现与调用接口
 
 ##### 核心功能
 
@@ -78,17 +72,9 @@ By - Lian - 2025
   - `dir_tool`: 目录创建、列表、树形展示、统计信息
   - `web_tool`: HTTP 请求、网页内容提取、HTML/JSON 解析
 
-##### API 端点
-
-- `GET /`: 服务状态
-- `GET /tools`: 获取所有可用工具列表
-- `GET /tools/{tool_name}`: 获取工具详细信息
-- `POST /tools/{tool_name}/call`: 调用指定工具
-- `POST /tools/reload`: 热重载工具元数据
-
 ##### 启动方式
 
-**生产模式**（普通启动）:
+**生产模式**:
 
 ```bash
 uv run python ./main.py server
@@ -98,7 +84,7 @@ uv run python ./main.py server --host 127.0.0.1 --port 8888
 
 文档: [MCP Server API 文档](mylib/mcp/README.md) (点击跳转)
 
-### 🤖 (3) 交互层: LLM Client --done-- (等待 Core 完成后进行重构)
+### 🤖 (3) 交互层: LLM Client --done-- (等待重构)
 
 LLM 客户端封装，支持多种模型提供商与工具调用 (目前测试使用 deepseek-chat)
 
