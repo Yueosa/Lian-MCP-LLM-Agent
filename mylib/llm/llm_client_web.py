@@ -209,6 +209,11 @@ TOOL_CALL_END
                     
                     result = self.call_tool(tool_name, tool_args)
                     
+                    # 截断过长的工具输出，防止上下文溢出
+                    result_str = json.dumps(result, ensure_ascii=False)
+                    if len(result_str) > 20000:
+                        result = f"结果过长 (长度 {len(result_str)}), 已截断: " + result_str[:20000] + "..."
+                    
                     log_history.append({
                         "type": "tool_execution",
                         "tool_name": tool_name,

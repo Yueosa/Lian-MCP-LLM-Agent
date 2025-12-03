@@ -3,8 +3,9 @@ import requests
 from typing import List, Dict, Any
 
 from mylib.config import ConfigLoader
-
 from mylib.kit import Loutput
+from mylib.kit.Lfind import get_embedding
+from mylib.lian_orm import Sql, MemoryLog, memory_log_memory_type, memory_log_role
 
 RESET = "\033[0m"
 BOLD = "\033[1m"
@@ -26,6 +27,7 @@ class MCPClient:
         self.base_url = "https://api.deepseek.com/v1"
         self.available_tools = self._load_tools()
         self.conversation_history = []
+        self.sql = Sql()
     
     
     def _load_tools(self) -> List[Dict]:
@@ -145,6 +147,28 @@ TOOL_CALL_END
         except Exception as e:
             return f"LLM调用错误: {str(e)}"
     
+    def _save_memory_log(self, role: memory_log_role, content: str):
+        """生成并保存记忆日志"""
+        if not content:
+            return
+            
+        try:
+            # self.lo.lput(f"[Memory] 正在生成 Embedding...", font_color="gray")
+            embedding = get_embedding(content)
+            
+            log = MemoryLog(
+                user_id="CCU_Lian",
+                role=role,
+                content=content,
+                embedding=embedding,
+                memory_type=memory_log_memory_type.conversation
+            )
+            
+            self.sql.Create_memory_log(log)
+            self.lo.lput(f"[Memory] 已保存 {role.value} 记忆 (ID: {log.id})", font_color="gray")
+        except Exception as e:
+            self.lo.lput(f"[Memory] 保存失败: {e}", font_color="red")
+
     def process_user_request(self, user_input: str) -> str:
         """处理用户请求，支持连续工具调用
         
@@ -166,9 +190,18 @@ TOOL_CALL_END
             if "TOOL_CALL_END" in llm_response:
                 self.lo.lput("\n[工具调用结束] LLM 返回最终答案", font_color="yellow")
                 final_answer = llm_response.replace("TOOL_CALL_END", "").strip()
+                
+                # 保存记忆
+                self._save_memory_log(memory_log_role.user, user_input)
+                self._save_memory_log(memory_log_role.llm, final_answer)
+                
                 return final_answer
             
             if "TOOL_CALL:" not in llm_response:
+                # 保存记忆
+                self._save_memory_log(memory_log_role.user, user_input)
+                self._save_memory_log(memory_log_role.llm, llm_response)
+                
                 return llm_response
             
             try:
@@ -192,6 +225,12 @@ TOOL_CALL_END
                     self.lo.lput(f"    参数: {json.dumps(tool_args, ensure_ascii=False)}", font_color=37)
                     
                     result = self.call_tool(tool_name, tool_args)
+                    
+                    # 截断过长的工具输出，防止上下文溢出
+                    result_str = json.dumps(result, ensure_ascii=False)
+                    if len(result_str) > 20000:
+                        result = f"结果过长 (长度 {len(result_str)}), 已截断: " + result_str[:20000] + "..."
+                    
                     tool_results.append({
                         "tool": tool_name,
                         "arguments": tool_args,
