@@ -9,6 +9,7 @@ class memory_log_role(Enum):
     user: 用户
     assistant: 管理员
     system: 系统
+    llm: 大模型
     """
     user = 'user'
     assistant = 'assistant'
