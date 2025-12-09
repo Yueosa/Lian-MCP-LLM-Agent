@@ -1,18 +1,22 @@
 import inspect
 import importlib
 from pathlib import Path
-from typing import Dict, Any, Optional, Callable, List
+from typing import Dict, Any, Optional, Callable, List, TYPE_CHECKING
 
 from .config import load_sql_config
 from .database.pool import PostgreSQLConnectionPool
 from .database.client import DatabaseClient
 from .schema.manager import SchemaManager
+from .repository import MemoryLogRepo, TasksRepo, TaskStepsRepo, ToolCallsRepo
+
+if TYPE_CHECKING:
+    from .repository import MemoryLogRepo, TasksRepo, TaskStepsRepo, ToolCallsRepo
 
 
 class Sql:
     """ORM 抽象层的顶层接口类
     
-    提供数据库连接和动态的表操作方法，支持通过 Create_{表名}, Read_{表名}, Update_{表名}, Delete_{表名} 进行操作。
+    提供数据库连接和表操作方法。
     """
     
     def __init__(self, host: Optional[str] = None, port: Optional[int] = None, 
@@ -66,6 +70,22 @@ class Sql:
         
         # 动态加载所有Repo类
         self._load_repos()
+
+    @property
+    def memory_log(self) -> "MemoryLogRepo":
+        return self._repos.get("memory_log")
+
+    @property
+    def tasks(self) -> "TasksRepo":
+        return self._repos.get("tasks")
+
+    @property
+    def task_steps(self) -> "TaskStepsRepo":
+        return self._repos.get("task_steps")
+
+    @property
+    def tool_calls(self) -> "ToolCallsRepo":
+        return self._repos.get("tool_calls")
     
     def _load_repos(self):
         """动态加载所有的Repo类
@@ -100,185 +120,6 @@ class Sql:
             except ImportError as e:
                 print(f"Failed to load repo {repo_name}: {e}")
                 pass
-    
-    def __getattr__(self, name: str) -> Callable:
-        """动态生成表操作方法
-        
-        支持以下格式的方法调用:
-        - Create_{表名}: 创建记录
-        - Read_{表名}: 读取记录
-        - Read_{表名}_With_Relations: 读取记录并加载关联对象
-        - Update_{表名}: 更新记录
-        - Delete_{表名}: 删除记录
-        - Join_{表1}_{表2}: 执行 JOIN 查询
-        
-        Args:
-            name: 方法名
-            
-        Returns:
-            对应的操作函数
-            
-        Raises:
-            AttributeError: 如果方法名格式不正确或表不存在
-        """
-        # 处理 Read_With_Relations 方法
-        if name.startswith('Read_') and '_With_Relations' in name:
-            table_name = name.replace('Read_', '').replace('_With_Relations', '').lower()
-            
-            if table_name not in self._repos:
-                raise AttributeError(f"表 '{table_name}' 不存在或未加载对应的Repo")
-            
-            repo = self._repos[table_name]
-            
-            def read_with_relations(relations: Optional[List[str]] = None, **kwargs):
-                """读取记录并加载关联对象
-                
-                Args:
-                    relations: 要加载的关系列表，None表示加载所有关系
-                    **kwargs: 查询条件
-                    
-                Returns:
-                    包含关联对象的查询结果列表
-                """
-                return repo.read_with_relations(relations=relations, **kwargs)
-            
-            return read_with_relations
-        
-        # 处理 Join 方法
-        if name.startswith('Join_'):
-            # 移除 'Join_' 前缀
-            remaining = name[5:]
-            # 尝试匹配已知的表名
-            table1 = None
-            table2 = None
-            for known_table in self._repos.keys():
-                if remaining.startswith(known_table + '_'):
-                    table1 = known_table
-                    table2 = remaining[len(known_table) + 1:]
-                    if table2 in self._repos:
-                        break
-                    else:
-                        table1 = None
-                        table2 = None
-            
-            if not table1 or not table2:
-                raise AttributeError(f"无法从 '{name}' 解析有效的表名。可用表: {list(self._repos.keys())}")
-            
-            if table1 not in self._repos:
-                raise AttributeError(f"表 '{table1}' 不存在或未加载对应的Repo")
-            
-            repo = self._repos[table1]
-            
-            def join_query(join_condition: str,
-                            select_fields: Optional[List[str]] = None,
-                            join_type: str = "INNER",
-                          **where_conditions):
-                """执行 JOIN 查询
-                
-                Args:
-                    join_condition: JOIN 条件，例如 "tasks.id = task_steps.task_id"
-                    select_fields: 要选择的字段列表
-                    join_type: JOIN 类型 (INNER, LEFT, RIGHT, FULL)
-                    **where_conditions: WHERE 条件
-                    
-                Returns:
-                    查询结果字典列表
-                """
-                return repo.join_query(
-                    join_table=table2,
-                    join_condition=join_condition,
-                    select_fields=select_fields,
-                    join_type=join_type,
-                    **where_conditions
-                )
-            
-            return join_query
-        
-        # 处理 Search 方法
-        if name.startswith('Search_'):
-            table_name = name.replace('Search_', '').lower()
-            
-            if table_name not in self._repos:
-                raise AttributeError(f"表 '{table_name}' 不存在或未加载对应的Repo")
-            
-            repo = self._repos[table_name]
-            
-            if not hasattr(repo, 'search_by_embedding'):
-                raise AttributeError(f"Repo '{table_name}' 不支持向量搜索 (未实现 search_by_embedding)")
-
-            def search_query(embedding: List[float], top_k: int = 5):
-                return repo.search_by_embedding(embedding, top_k)
-            
-            return search_query
-
-        # 处理标准 CRUD 方法
-        if name.startswith(('Create_', 'Read_', 'Update_', 'Delete_')):
-            operation, table_name = name.split('_', 1)
-            
-            table_name = table_name.lower()
-            
-            if table_name not in self._repos:
-                raise AttributeError(f"表 '{table_name}' 不存在或未加载对应的Repo")
-            
-            repo = self._repos[table_name]
-            
-            if operation == 'Create':
-                def create(model_instance):
-                    """创建记录
-                    
-                    Args:
-                        model_instance: pydantic模型实例
-                        
-                    Returns:
-                        创建后的模型实例
-                    """
-                    return repo.create(model_instance)
-                
-                return create
-            
-            elif operation == 'Read':
-                def read(**kwargs):
-                    """读取记录
-                    
-                    支持通过_allowed_get_fields中的字段进行查询
-                    
-                    Returns:
-                        查询结果列表
-                    """
-                    return repo.read(**kwargs)
-                
-                return read
-            
-            elif operation == 'Update':
-                def update(id, **kwargs):
-                    """更新记录
-                    
-                    Args:
-                        id: 记录ID
-                        **kwargs: 要更新的字段和值
-                        
-                    Returns:
-                        更新是否成功
-                    """
-                    return repo.update(id, **kwargs)
-                
-                return update
-            
-            elif operation == 'Delete':
-                def delete(id):
-                    """删除记录
-                    
-                    Args:
-                        id: 记录ID
-                        
-                    Returns:
-                        删除是否成功
-                    """
-                    return repo.delete(id)
-                
-                return delete
-        
-        raise AttributeError(f"'{self.__class__.__name__}' 对象没有属性 '{name}'")
     
     def get_supported_tables(self) -> List[str]:
         """获取所有支持的表名
