@@ -26,7 +26,7 @@ def emb() -> None:
         msg = input("msg: ")
         emb = get_embedding(msg)
 
-        res = sql.Search_memory_log(emb, 10)
+        res = sql.memory_log.search_by_embedding(emb, 3)
 
         for i in res:
             lo.lput(i['id'], i['user_id'], i['content'], font_color=35)

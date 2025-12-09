@@ -166,7 +166,7 @@ TOOL_CALL_END
                 memory_type=MemoryLogMemoryType.CONVERSATION
             )
             
-            self.sql.Create_memory_log(log)
+            self.sql.memory_log.create(log)
             self.lo.lput(f"[Memory] 已保存 {role.value} 记忆 (ID: {log.id})", font_color="gray")
         except Exception as e:
             self.lo.lput(f"[Memory] 保存失败: {e}", font_color="red")

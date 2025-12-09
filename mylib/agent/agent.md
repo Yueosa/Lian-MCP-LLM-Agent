@@ -234,39 +234,28 @@ resp = call_llm_api(messages)
 1、Memory 模块
 
 向量数据库
-
 层级摘要
-
 相关性评分
-
 检索与注入
 
 2、Context Builder 模块（LLMBaseAgent 核心）
 
 identity prompt 注入
-
 schema 注入
-
 摘要注入
-
 recent messages 注入
-
 token 剪枝
-
 上下文合成
 
 3、Response Validator 模块
 
 JSON schema validation
-
 纠错调用
 
 4、Policy/Execution 模块
 
 spawn_agents (管理员专用)
-
 call_tools
-
 保存 memory_log
 
 ##### 问题二：动态裁剪 token 可写成基类公共方法？

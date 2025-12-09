@@ -129,7 +129,7 @@ lo.lput("【测试 2.1】创建记录 (Create)", font_color="yellow")
 lo.lput("说明: 使用 Pydantic 模型创建新记录", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
 lo.lput("  task = Task(user_id='test', title='新任务', status=tasks_status.pending)", font_color="gray")
-lo.lput("  created = sql.Create_tasks(task)", font_color="gray")
+lo.lput("  created = sql.tasks.create(task)", font_color="gray")
 
 created_task = None
 try:
@@ -139,7 +139,7 @@ try:
         description="这是一个用于测试 SQL ORM 所有功能的任务",
         status=tasks_status.pending
     )
-    created_task = sql.Create_tasks(task)
+    created_task = sql.tasks.create(task)
     test_case(
         "创建任务记录", 
         created_task.id is not None,
@@ -152,23 +152,23 @@ lo.lput("\n【测试 2.2】读取记录 (Read)", font_color="yellow")
 lo.lput("说明: 根据条件查询记录，支持多字段组合查询", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
 lo.lput("  # 查询所有记录", font_color="gray")
-lo.lput("  all_tasks = sql.Read_tasks()", font_color="gray")
+lo.lput("  all_tasks = sql.tasks.read()", font_color="gray")
 lo.lput("  # 单字段查询", font_color="gray")
-lo.lput("  user_tasks = sql.Read_tasks(user_id='test')", font_color="gray")
+lo.lput("  user_tasks = sql.tasks.read(user_id='test')", font_color="gray")
 lo.lput("  # 多字段查询", font_color="gray")
-lo.lput("  pending = sql.Read_tasks(user_id='test', status='pending')", font_color="gray")
+lo.lput("  pending = sql.tasks.read(user_id='test', status='pending')", font_color="gray")
 
 try:
     # 根据 ID 查询
-    tasks_by_id = sql.Read_tasks(id=created_task.id)
+    tasks_by_id = sql.tasks.read(id=created_task.id)
     test_case("根据 ID 查询", len(tasks_by_id) == 1, f"查询到 {len(tasks_by_id)} 条记录")
     
     # 根据 user_id 查询
-    tasks_by_user = sql.Read_tasks(user_id="test_sql_tutorial")
+    tasks_by_user = sql.tasks.read(user_id="test_sql_tutorial")
     test_case("根据 user_id 查询", len(tasks_by_user) >= 1, f"查询到 {len(tasks_by_user)} 条记录")
     
     # 多条件组合查询
-    tasks_combined = sql.Read_tasks(user_id="test_sql_tutorial", status="pending")
+    tasks_combined = sql.tasks.read(user_id="test_sql_tutorial", status="pending")
     test_case("多条件组合查询", len(tasks_combined) >= 1, f"查询到 {len(tasks_combined)} 条记录")
 except Exception as e:
     test_case("读取记录", False, str(e))
@@ -176,14 +176,14 @@ except Exception as e:
 lo.lput("\n【测试 2.3】更新记录 (Update)", font_color="yellow")
 lo.lput("说明: 根据 ID 更新记录的字段值", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
-lo.lput("  success = sql.Update_tasks(task_id, status='running', title='新标题')", font_color="gray")
+lo.lput("  success = sql.tasks.update(task_id, status='running', title='新标题')", font_color="gray")
 
 try:
     # 更新单个字段
-    success1 = sql.Update_tasks(created_task.id, status=tasks_status.running)
+    success1 = sql.tasks.update(created_task.id, status=tasks_status.running)
     
     # 验证更新
-    updated_task = sql.Read_tasks(id=created_task.id)[0]
+    updated_task = sql.tasks.read(id=created_task.id)[0]
     test_case(
         "更新任务状态", 
         updated_task.status == tasks_status.running,
@@ -247,12 +247,12 @@ lo.lput("\n【测试 3.1】创建带外键的记录", font_color="yellow")
 lo.lput("说明: 创建具有外键关联的子记录", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
 lo.lput("  step = TaskStep(task_id=task.id, step_index=1, instruction='步骤1')", font_color="gray")
-lo.lput("  created_step = sql.Create_task_steps(step)", font_color="gray")
+lo.lput("  created_step = sql.task_steps.create(step)", font_color="gray")
 
 created_steps = []
 try:
     # 重置任务状态为 pending
-    sql.Update_tasks(created_task.id, status=tasks_status.pending)
+    sql.tasks.update(created_task.id, status=tasks_status.pending)
     
     # 创建多个步骤
     steps_data = [
@@ -264,7 +264,7 @@ try:
     
     for step_data in steps_data:
         step = TaskStep(task_id=created_task.id, **step_data)
-        created_step = sql.Create_task_steps(step)
+        created_step = sql.task_steps.create(step)
         created_steps.append(created_step)
     
     test_case("创建关联步骤", len(created_steps) == 4, f"成功创建 {len(created_steps)} 个步骤")
@@ -273,33 +273,35 @@ except Exception as e:
 
 lo.lput("\n【测试 3.2】基本关系查询（不加载关联）", font_color="yellow")
 lo.lput("说明: 标准查询不会自动加载关联对象，需要显式调用", font_color="white")
-lo.lput("代码: task = sql.Read_tasks(id=task_id)[0]", font_color="gray")
+lo.lput("代码: task = sql.tasks.read(id=task_id)[0]", font_color="gray")
 
 try:
-    task = sql.Read_tasks(id=created_task.id)[0]
-    related_count = len(task.get_related_objects())
+    task = sql.tasks.read(id=created_task.id)[0]
+    # 在 Pydantic 模型中，未加载的关系字段通常为 None 或被排除
+    # 这里我们检查 task_steps 属性
+    steps = task.task_steps
     test_case(
         "基本查询不加载关联",
-        related_count == 0,
-        f"关联对象数量: {related_count}（符合预期）"
+        steps is None,
+        "关联字段 task_steps 为 None（符合预期）"
     )
 except Exception as e:
     test_case("基本查询不加载关联", False, str(e))
 
 lo.lput("\n【测试 3.3】加载所有关联对象", font_color="yellow")
-lo.lput("说明: 使用 Read_With_Relations 自动加载所有定义的关联对象", font_color="white")
-lo.lput("代码: tasks = sql.Read_tasks_With_Relations(id=task_id)", font_color="gray")
+lo.lput("说明: 使用 read_with_relations 自动加载所有定义的关联对象", font_color="white")
+lo.lput("代码: tasks = sql.tasks.read_with_relations(id=task_id)", font_color="gray")
 lo.lput("特点: ", font_color="gray")
 lo.lput("  - 批量加载，避免 N+1 查询问题", font_color="gray")
 lo.lput("  - 支持一对多、多对一、一对一关系", font_color="gray")
 lo.lput("  - 自动根据模型定义加载所有关系", font_color="gray")
 
 try:
-    tasks_with_relations = sql.Read_tasks_With_Relations(id=created_task.id)
+    tasks_with_relations = sql.tasks.read_with_relations(id=created_task.id)
     task = tasks_with_relations[0]
     
     # 获取关联的步骤
-    steps = task.get_related_object("task_steps")
+    steps = task.task_steps
     test_case(
         "加载一对多关系（步骤）",
         steps is not None and len(steps) == 4,
@@ -317,7 +319,7 @@ lo.lput("\n【测试 3.4】选择性加载特定关系", font_color="yellow")
 lo.lput("说明: 只加载指定的关系，提高查询效率", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
 lo.lput("  # 只加载步骤，不加载工具调用", font_color="gray")
-lo.lput("  tasks = sql.Read_tasks_With_Relations(relations=['task_steps'], id=task_id)", font_color="gray")
+lo.lput("  tasks = sql.tasks.read_with_relations(relations=['task_steps'], id=task_id)", font_color="gray")
 
 try:
     # 创建一个工具调用用于测试
@@ -329,17 +331,18 @@ try:
         response={"rows": 100, "time": "0.05s"},
         status=tool_calls_status.success
     )
-    created_tool = sql.Create_tool_calls(tool_call)
+    created_tool = sql.tool_calls.create(tool_call)
     
     # 只加载步骤
-    tasks_partial = sql.Read_tasks_With_Relations(
+    tasks_partial = sql.tasks.read_with_relations(
         relations=["task_steps"],
         id=created_task.id
     )
     task_partial = tasks_partial[0]
     
-    has_steps = task_partial.get_related_object("task_steps") is not None
-    has_tools = task_partial.get_related_object("tool_calls") is not None
+    has_steps = task_partial.task_steps is not None
+    # 注意：如果 tool_calls 没有被加载，它应该是 None
+    has_tools = task_partial.tool_calls is not None
     
     test_case(
         "选择性关系加载",
@@ -352,18 +355,18 @@ except Exception as e:
 lo.lput("\n【测试 3.5】反向关系查询（多对一）", font_color="yellow")
 lo.lput("说明: 从子记录查询父记录（如从 TaskStep 查询 Task）", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
-lo.lput("  steps = sql.Read_task_steps_With_Relations(relations=['task'], task_id=task_id)", font_color="gray")
-lo.lput("  parent_task = steps[0].get_related_object('task')", font_color="gray")
+lo.lput("  steps = sql.task_steps.read_with_relations(relations=['task'], task_id=task_id)", font_color="gray")
+lo.lput("  parent_task = steps[0].task", font_color="gray")
 
 try:
-    steps_with_task = sql.Read_task_steps_With_Relations(
+    steps_with_task = sql.task_steps.read_with_relations(
         relations=["task"],
         task_id=created_task.id
     )
     
     success_count = 0
     for step in steps_with_task:
-        parent_task = step.get_related_object("task")
+        parent_task = step.task
         if parent_task and parent_task.id == created_task.id:
             success_count += 1
     
@@ -373,8 +376,8 @@ try:
         f"{success_count}/{len(steps_with_task)} 个步骤成功加载父任务"
     )
     
-    if steps_with_task and steps_with_task[0].get_related_object("task"):
-        parent = steps_with_task[0].get_related_object("task")
+    if steps_with_task and steps_with_task[0].task:
+        parent = steps_with_task[0].task
         lo.lput(f"  示例: 步骤 1 的父任务 = '{parent.title}'", font_color="white")
 except Exception as e:
     test_case("反向关系查询", False, str(e))
@@ -382,30 +385,30 @@ except Exception as e:
 lo.lput("\n【测试 3.6】多级关系导航", font_color="yellow")
 lo.lput("说明: 通过关联对象进行多级查询（ToolCall → TaskStep → Task）", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
-lo.lput("  tool = sql.Read_tool_calls_With_Relations(relations=['task_step'], id=tool_id)[0]", font_color="gray")
-lo.lput("  step = tool.get_related_object('task_step')", font_color="gray")
+lo.lput("  tool = sql.tool_calls.read_with_relations(relations=['task_step'], id=tool_id)[0]", font_color="gray")
+lo.lput("  step = tool.task_step", font_color="gray")
 lo.lput("  # 再查询 step 的 task", font_color="gray")
 
 try:
     # 查询工具调用及其步骤
-    tools_with_step = sql.Read_tool_calls_With_Relations(
+    tools_with_step = sql.tool_calls.read_with_relations(
         relations=["task_step"],
         id=created_tool.id
     )
     
     if tools_with_step:
         tool = tools_with_step[0]
-        step = tool.get_related_object("task_step")
+        step = tool.task_step
         
         if step:
             # 再查询步骤的任务
-            steps_with_task = sql.Read_task_steps_With_Relations(
+            steps_with_task = sql.task_steps.read_with_relations(
                 relations=["task"],
                 id=step.id
             )
             
             if steps_with_task:
-                final_task = steps_with_task[0].get_related_object("task")
+                final_task = steps_with_task[0].task
                 test_case(
                     "多级关系导航",
                     final_task is not None and final_task.id == created_task.id,
