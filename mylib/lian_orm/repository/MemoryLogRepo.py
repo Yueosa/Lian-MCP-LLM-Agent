@@ -1,3 +1,4 @@
+from typing import List, Dict, Any
 from ..models import MemoryLog
 from .BaseRepo import BaseRepo
 
@@ -23,3 +24,21 @@ class MemoryLogRepo(BaseRepo):
         if self._table_meta:
             self._allowed_get_fields = list(self._table_meta.columns.keys())
         super()._verify()
+
+    def search_by_embedding(self, embedding: List[float], top_k: int = 5) -> List[Dict[str, Any]]:
+        """
+        根据向量相似度搜索
+        """
+        embedding_str = str(embedding)
+        
+        fields = ", ".join(self._allowed_get_fields)
+        
+        sql = f"""
+            SELECT {fields}, 1 - (embedding <=> %s) as score
+            FROM {self.get_table_name()}
+            ORDER BY embedding <=> %s
+            LIMIT %s
+        """
+        
+        return self.db.fetch_all(sql, [embedding_str, embedding_str, top_k])
+

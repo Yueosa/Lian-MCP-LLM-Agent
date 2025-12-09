@@ -194,6 +194,23 @@ class Sql:
             
             return join_query
         
+        # 处理 Search 方法
+        if name.startswith('Search_'):
+            table_name = name.replace('Search_', '').lower()
+            
+            if table_name not in self._repos:
+                raise AttributeError(f"表 '{table_name}' 不存在或未加载对应的Repo")
+            
+            repo = self._repos[table_name]
+            
+            if not hasattr(repo, 'search_by_embedding'):
+                raise AttributeError(f"Repo '{table_name}' 不支持向量搜索 (未实现 search_by_embedding)")
+
+            def search_query(embedding: List[float], top_k: int = 5):
+                return repo.search_by_embedding(embedding, top_k)
+            
+            return search_query
+
         # 处理标准 CRUD 方法
         if name.startswith(('Create_', 'Read_', 'Update_', 'Delete_')):
             operation, table_name = name.split('_', 1)
