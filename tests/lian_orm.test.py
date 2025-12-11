@@ -433,14 +433,16 @@ test_section("第四部分: JOIN 多表联合查询")
 lo.lput("\n【测试 4.1】INNER JOIN 查询", font_color="yellow")
 lo.lput("说明: 使用 INNER JOIN 联合查询两个表", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
-lo.lput("  results = sql.Join_tasks_task_steps(", font_color="gray")
+lo.lput("  results = sql.tasks.join_query(", font_color="gray")
+lo.lput("      join_table='task_steps',", font_color="gray")
 lo.lput("      join_condition='tasks.id = task_steps.task_id',", font_color="gray")
 lo.lput("      select_fields=['tasks.title', 'task_steps.instruction'],", font_color="gray")
 lo.lput("      **{'tasks.id': task_id}", font_color="gray")
 lo.lput("  )", font_color="gray")
 
 try:
-    results = sql.Join_tasks_task_steps(
+    results = sql.tasks.join_query(
+        join_table="task_steps",
         join_condition="tasks.id = task_steps.task_id",
         select_fields=["tasks.title", "tasks.status", "task_steps.instruction", "task_steps.step_index", "task_steps.status"],
         **{"tasks.id": created_task.id}
@@ -465,7 +467,8 @@ except Exception as e:
 lo.lput("\n【测试 4.2】LEFT JOIN 查询", font_color="yellow")
 lo.lput("说明: LEFT JOIN 保留左表所有记录，即使右表无匹配", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
-lo.lput("  results = sql.Join_tasks_task_steps(", font_color="gray")
+lo.lput("  results = sql.tasks.join_query(", font_color="gray")
+lo.lput("      join_table='task_steps',", font_color="gray")
 lo.lput("      join_condition='tasks.id = task_steps.task_id',", font_color="gray")
 lo.lput("      join_type='LEFT',", font_color="gray")
 lo.lput("      **{'tasks.user_id': 'test_sql_tutorial'}", font_color="gray")
@@ -478,10 +481,11 @@ try:
         title="无步骤任务",
         status=tasks_status.pending
     )
-    created_no_steps = sql.Create_tasks(task_no_steps)
+    created_no_steps = sql.tasks.create(task_no_steps)
     
     # LEFT JOIN 查询
-    results_left = sql.Join_tasks_task_steps(
+    results_left = sql.tasks.join_query(
+        join_table="task_steps",
         join_condition="tasks.id = task_steps.task_id",
         join_type="LEFT",
         select_fields=["tasks.title", "task_steps.instruction"],
@@ -496,7 +500,7 @@ try:
     )
     
     # 清理
-    sql.Delete_tasks(created_no_steps.id)
+    sql.tasks.delete(created_no_steps.id)
 except Exception as e:
     test_case("LEFT JOIN 查询", False, str(e))
 
@@ -504,7 +508,8 @@ lo.lput("\n【测试 4.3】三表 JOIN 查询", font_color="yellow")
 lo.lput("说明: 查询任务、步骤和工具调用的联合信息", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
 lo.lput("  # 先 JOIN tasks 和 task_steps", font_color="gray")
-lo.lput("  results = sql.Join_task_steps_tool_calls(", font_color="gray")
+lo.lput("  results = sql.task_steps.join_query(", font_color="gray")
+lo.lput("      join_table='tool_calls',", font_color="gray")
 lo.lput("      join_condition='task_steps.id = tool_calls.step_id',", font_color="gray")
 lo.lput("      select_fields=['task_steps.instruction', 'tool_calls.tool_name'],", font_color="gray")
 lo.lput("      **{'task_steps.task_id': task_id}", font_color="gray")
@@ -512,7 +517,8 @@ lo.lput("  )", font_color="gray")
 
 try:
     # 查询步骤和工具调用的联合信息
-    results_3table = sql.Join_task_steps_tool_calls(
+    results_3table = sql.task_steps.join_query(
+        join_table="tool_calls",
         join_condition="task_steps.id = tool_calls.step_id",
         select_fields=["task_steps.instruction", "task_steps.step_index", "tool_calls.tool_name", "tool_calls.status"],
         **{"task_steps.task_id": created_task.id}
@@ -543,12 +549,12 @@ test_section("第五部分: 数据导出与序列化")
 lo.lput("\n【测试 5.1】导出单条记录", font_color="yellow")
 lo.lput("说明: 将 Pydantic 模型导出为字典", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
-lo.lput("  task = sql.Read_tasks(id=task_id)[0]", font_color="gray")
+lo.lput("  task = sql.tasks.read(id=task_id)[0]", font_color="gray")
 lo.lput("  task_dict = task.model_dump()  # Pydantic v2", font_color="gray")
 lo.lput("  # 或 task.dict()  # Pydantic v1", font_color="gray")
 
 try:
-    task = sql.Read_tasks(id=created_task.id)[0]
+    task = sql.tasks.read(id=created_task.id)[0]
     task_dict = task.model_dump()
     
     test_case(
@@ -564,13 +570,13 @@ except Exception as e:
 lo.lput("\n【测试 5.2】导出包含关系的数据", font_color="yellow")
 lo.lput("说明: 导出记录及其所有关联对象", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
-lo.lput("  task = sql.Read_tasks_With_Relations(id=task_id)[0]", font_color="gray")
+lo.lput("  task = sql.tasks.read_with_relations(id=task_id)[0]", font_color="gray")
 lo.lput("  task_dict = task.to_dict_with_relations()  # 包含所有关系", font_color="gray")
 lo.lput("  # 或选择性导出", font_color="gray")
 lo.lput("  task_dict = task.to_dict_with_relations(include_relations=['task_steps'])", font_color="gray")
 
 try:
-    task_full = sql.Read_tasks_With_Relations(id=created_task.id)[0]
+    task_full = sql.tasks.read_with_relations(id=created_task.id)[0]
     
     # 导出所有关系
     full_dict = task_full.to_dict_with_relations()
@@ -604,7 +610,7 @@ lo.lput("说明: 快速创建多条记录", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
 lo.lput("  for i in range(10):", font_color="gray")
 lo.lput("      task = Task(user_id='test', title=f'批量任务{i}')", font_color="gray")
-lo.lput("      sql.Create_tasks(task)", font_color="gray")
+lo.lput("      sql.tasks.create(task)", font_color="gray")
 
 try:
     batch_tasks = []
@@ -615,7 +621,7 @@ try:
             description=f"这是第 {i+1} 个批量创建的任务",
             status=tasks_status.pending
         )
-        created = sql.Create_tasks(task)
+        created = sql.tasks.create(task)
         batch_tasks.append(created)
     
     test_case(
@@ -628,10 +634,10 @@ except Exception as e:
 
 lo.lput("\n【测试 6.2】批量查询", font_color="yellow")
 lo.lput("说明: 查询符合条件的所有记录", font_color="white")
-lo.lput("代码: all_test_tasks = sql.Read_tasks(user_id='test_sql_tutorial')", font_color="gray")
+lo.lput("代码: all_test_tasks = sql.tasks.read(user_id='test_sql_tutorial')", font_color="gray")
 
 try:
-    all_test_tasks = sql.Read_tasks(user_id="test_sql_tutorial")
+    all_test_tasks = sql.tasks.read(user_id="test_sql_tutorial")
     test_case(
         "批量查询记录",
         len(all_test_tasks) >= 6,  # 1个主测试任务 + 5个批量任务
@@ -653,21 +659,21 @@ except Exception as e:
 lo.lput("\n【测试 6.3】批量更新", font_color="yellow")
 lo.lput("说明: 更新多条记录的状态", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
-lo.lput("  pending_tasks = sql.Read_tasks(status='pending')", font_color="gray")
+lo.lput("  pending_tasks = sql.tasks.read(status='pending')", font_color="gray")
 lo.lput("  for task in pending_tasks:", font_color="gray")
-lo.lput("      sql.Update_tasks(task.id, status='running')", font_color="gray")
+lo.lput("      sql.tasks.update(task.id, status='running')", font_color="gray")
 
 try:
     # 将所有 pending 的批量任务更新为 running
-    pending_tasks = sql.Read_tasks(user_id="test_sql_tutorial", status="pending")
+    pending_tasks = sql.tasks.read(user_id="test_sql_tutorial", status="pending")
     update_count = 0
     for task in pending_tasks:
         if "批量任务" in task.title:
-            sql.Update_tasks(task.id, status=tasks_status.running)
+            sql.tasks.update(task.id, status=tasks_status.running)
             update_count += 1
     
     # 验证更新
-    running_tasks = sql.Read_tasks(user_id="test_sql_tutorial", status="running")
+    running_tasks = sql.tasks.read(user_id="test_sql_tutorial", status="running")
     test_case(
         "批量更新记录",
         update_count > 0,
@@ -679,15 +685,15 @@ except Exception as e:
 lo.lput("\n【测试 6.4】批量删除", font_color="yellow")
 lo.lput("说明: 删除批量创建的测试任务", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
-lo.lput("  tasks_to_delete = sql.Read_tasks(user_id='test')", font_color="gray")
+lo.lput("  tasks_to_delete = sql.tasks.read(user_id='test')", font_color="gray")
 lo.lput("  for task in tasks_to_delete:", font_color="gray")
-lo.lput("      sql.Delete_tasks(task.id)", font_color="gray")
+lo.lput("      sql.tasks.delete(task.id)", font_color="gray")
 
 try:
     # 删除批量任务
     delete_count = 0
     for task in batch_tasks:
-        success = sql.Delete_tasks(task.id)
+        success = sql.tasks.delete(task.id)
         if success:
             delete_count += 1
     
@@ -709,7 +715,7 @@ lo.lput("\n【测试 7.1】级联删除测试", font_color="yellow")
 lo.lput("说明: 删除父记录时，子记录会被自动删除（ON DELETE CASCADE）", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
 lo.lput("  # 删除任务会自动删除其步骤和工具调用", font_color="gray")
-lo.lput("  sql.Delete_tasks(task_id)", font_color="gray")
+lo.lput("  sql.tasks.delete(task_id)", font_color="gray")
 
 try:
     # 创建测试任务和步骤
@@ -718,7 +724,7 @@ try:
         title="级联删除测试任务",
         status=tasks_status.pending
     )
-    cascade_created = sql.Create_tasks(cascade_task)
+    cascade_created = sql.tasks.create(cascade_task)
     
     # 创建步骤
     cascade_steps = []
@@ -729,17 +735,17 @@ try:
             instruction=f"步骤 {i+1}",
             status=task_steps_status.pending
         )
-        cascade_steps.append(sql.Create_task_steps(step))
+        cascade_steps.append(sql.task_steps.create(step))
     
     # 查询步骤数量
-    steps_before = sql.Read_task_steps(task_id=cascade_created.id)
+    steps_before = sql.task_steps.read(task_id=cascade_created.id)
     lo.lput(f"  删除前: 任务有 {len(steps_before)} 个步骤", font_color="white")
     
     # 删除任务
-    sql.Delete_tasks(cascade_created.id)
+    sql.tasks.delete(cascade_created.id)
     
     # 验证步骤也被删除
-    steps_after = sql.Read_task_steps(task_id=cascade_created.id)
+    steps_after = sql.task_steps.read(task_id=cascade_created.id)
     test_case(
         "级联删除",
         len(steps_after) == 0,
@@ -785,10 +791,10 @@ try:
         },
         status=tool_calls_status.success
     )
-    created_json_tool = sql.Create_tool_calls(json_tool)
+    created_json_tool = sql.tool_calls.create(json_tool)
     
     # 读取并验证
-    read_tool = sql.Read_tool_calls(id=created_json_tool.id)[0]
+    read_tool = sql.tool_calls.read(id=created_json_tool.id)[0]
     test_case(
         "JSON 字段创建与读取",
         read_tool.arguments.get("method") == "POST" and 
@@ -800,7 +806,7 @@ try:
     lo.lput(f"  response keys: {list(read_tool.response.keys())}", font_color="white")
     
     # 清理
-    sql.Delete_tool_calls(created_json_tool.id)
+    sql.tool_calls.delete(created_json_tool.id)
 except Exception as e:
     test_case("JSON 字段处理", False, str(e))
 
@@ -818,10 +824,10 @@ try:
         # output 不提供（默认为 None）
         status=task_steps_status.pending
     )
-    created_optional = sql.Create_task_steps(optional_step)
+    created_optional = sql.task_steps.create(optional_step)
     
     # 读取验证
-    read_optional = sql.Read_task_steps(id=created_optional.id)[0]
+    read_optional = sql.task_steps.read(id=created_optional.id)[0]
     test_case(
         "可选字段处理",
         read_optional.output is None or read_optional.output == "",
@@ -829,7 +835,7 @@ try:
     )
     
     # 清理
-    sql.Delete_task_steps(created_optional.id)
+    sql.task_steps.delete(created_optional.id)
 except Exception as e:
     test_case("可选字段处理", False, str(e))
 
@@ -841,10 +847,10 @@ test_section("第九部分: 错误处理与边界情况")
 
 lo.lput("\n【测试 9.1】查询不存在的记录", font_color="yellow")
 lo.lput("说明: 查询不存在的 ID 返回空列表", font_color="white")
-lo.lput("代码: tasks = sql.Read_tasks(id=999999)", font_color="gray")
+lo.lput("代码: tasks = sql.tasks.read(id=999999)", font_color="gray")
 
 try:
-    non_exist = sql.Read_tasks(id=999999)
+    non_exist = sql.tasks.read(id=999999)
     test_case(
         "查询不存在的记录",
         len(non_exist) == 0,
@@ -855,10 +861,10 @@ except Exception as e:
 
 lo.lput("\n【测试 9.2】更新不存在的记录", font_color="yellow")
 lo.lput("说明: 更新不存在的记录返回 False", font_color="white")
-lo.lput("代码: success = sql.Update_tasks(999999, title='新标题')", font_color="gray")
+lo.lput("代码: success = sql.tasks.update(999999, title='新标题')", font_color="gray")
 
 try:
-    success = sql.Update_tasks(999999, title="新标题")
+    success = sql.tasks.update(999999, title="新标题")
     test_case(
         "更新不存在的记录",
         success == False,
@@ -869,10 +875,10 @@ except Exception as e:
 
 lo.lput("\n【测试 9.3】删除不存在的记录", font_color="yellow")
 lo.lput("说明: 删除不存在的记录返回 False", font_color="white")
-lo.lput("代码: success = sql.Delete_tasks(999999)", font_color="gray")
+lo.lput("代码: success = sql.tasks.delete(999999)", font_color="gray")
 
 try:
-    success = sql.Delete_tasks(999999)
+    success = sql.tasks.delete(999999)
     test_case(
         "删除不存在的记录",
         success == False,
@@ -883,12 +889,12 @@ except Exception as e:
 
 lo.lput("\n【测试 9.4】无效字段查询", font_color="yellow")
 lo.lput("说明: 使用不在 _allowed_get_fields 中的字段查询会报错", font_color="white")
-lo.lput("代码: tasks = sql.Read_tasks(invalid_field='value')  # 会抛出 ValueError", font_color="gray")
+lo.lput("代码: tasks = sql.tasks.read(invalid_field='value')  # 会抛出 ValueError", font_color="gray")
 
 try:
     error_raised = False
     try:
-        sql.Read_tasks(invalid_field_name="test")
+        sql.tasks.read(invalid_field_name="test")
     except ValueError as ve:
         error_raised = True
     
@@ -939,15 +945,15 @@ else:
 lo.lput("="*60, font_color="cyan")
 
 lo.lput("\n📚 学习要点总结: ", font_color="cyan")
-lo.lput("1. 基本 CRUD: Create_*, Read_*, Update_*, Delete_*", font_color="white")
-lo.lput("2. 关系查询: Read_*_With_Relations(relations=[...])", font_color="white")
-lo.lput("3. JOIN 查询: Join_{table1}_{table2}(join_condition=...)", font_color="white")
+lo.lput("1. 基本 CRUD: sql.table.create(), sql.table.read(), sql.table.update(), sql.table.delete()", font_color="white")
+lo.lput("2. 关系查询: sql.table.read_with_relations(relations=[...])", font_color="white")
+lo.lput("3. JOIN 查询: sql.table.join_query(join_table=..., join_condition=...)", font_color="white")
 lo.lput("4. 数据导出: model.to_dict_with_relations()", font_color="white")
 lo.lput("5. 级联删除: 删除父记录自动删除子记录", font_color="white")
 lo.lput("6. 枚举处理: 支持枚举对象和字符串值", font_color="white")
 lo.lput("7. JSON 字段: dict 自动转换为 JSONB", font_color="white")
 
 lo.lput("\n💡 更多信息请参考: ", font_color="cyan")
-lo.lput("  - mylib/sql/docs/sql.md - SQL 模块使用文档", font_color="gray")
-lo.lput("  - mylib/sql/docs/Model.md - 模型系统文档", font_color="gray")
-lo.lput("  - mylib/sql/docs/DBRepo.md - 仓库层文档", font_color="gray")
+lo.lput("  - mylib/lian_orm/docs/orm.md - SQL 模块使用文档", font_color="gray")
+lo.lput("  - mylib/lian_orm/docs/models.md - 模型系统文档", font_color="gray")
+lo.lput("  - mylib/lian_orm/docs/repository.md - 仓库层文档", font_color="gray")

@@ -1,5 +1,7 @@
+import asyncio
 import base
 
+from mylib.agent.demo_agent import HistorySummaryAgent
 from mylib.kit.Lfind import get_embedding
 from mylib.kit.Loutput import Loutput
 from mylib.lian_orm import (
@@ -11,6 +13,7 @@ from mylib.lian_orm import (
 
 sql = Sql()
 lo = Loutput()
+agent = HistorySummaryAgent()
 
 
 # -----------
@@ -22,14 +25,16 @@ test_messages = [
 
 
 def emb() -> None:
-    while True:
-        msg = input("msg: ")
-        emb = get_embedding(msg)
+    msg = input("msg: ")
+    emb = get_embedding(msg)
+    context: str = ""
 
-        res = sql.memory_log.search_by_embedding(emb, 3)
+    res = sql.memory_log.search_by_embedding(emb, 3)
 
-        for i in res:
-            lo.lput(i['id'], i['user_id'], i['content'], font_color=35)
+    for i in res:
+        lo.lput(i['id'], i['user_id'], i['content'], font_color=35)
+        context += i["content"] + '\n' + '\n'
+    return context
 
 
 def cql_batch(msg_list: list[str]):
@@ -48,10 +53,15 @@ def cql_batch(msg_list: list[str]):
         created = sql.Create_memory_log(mql)
         lo.lput(f"Inserted ID={created.id}", "test_lian", msg, font_color=36)
 
+async def run_test():
+    msg = input("msg: ")
+    summary = await agent.handle(msg)
+    print(summary)
+
 
 if __name__ == "__main__":
     # 批量插入
     # cql_batch(test_messages)
 
     # 测试embedding检索
-    emb()
+    asyncio.run(run_test())

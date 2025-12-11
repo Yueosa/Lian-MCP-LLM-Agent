@@ -41,4 +41,3 @@ class MemoryLogRepo(BaseRepo):
         """
         
         return self.db.fetch_all(sql, [embedding_str, embedding_str, top_k])
-
