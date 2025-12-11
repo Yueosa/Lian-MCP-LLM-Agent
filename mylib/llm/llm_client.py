@@ -186,7 +186,7 @@ TOOL_CALL_END
         self.lo.lput(f"\n[LLM 响应 #1] {llm_response[:200]}...", font_color="cyan")
         
         tool_call_round = 0
-        max_rounds = 10
+        max_rounds = 20
         
         while tool_call_round < max_rounds:
             if "TOOL_CALL_END" in llm_response:
