@@ -13,12 +13,13 @@ from .base import ConfigDictWrapper
 class DiscoveryLoader:
     """负责从 TOML/JSON 文件中自动发现并注册配置节"""
     
-    def __init__(self, search_path: str, ignore_files: Optional[Set[str]] = None):
+    def __init__(self, search_path: str, ignore_files: Optional[Set[str]] = None, search_subdirs: bool = False):
         self.search_path = search_path
         self.discovered_sections: Dict[str, Any] = {}
         self.loaded_files: List[str] = []
         self.ignore_files = ignore_files
         self.is_single_file_mode = False
+        self.search_subdirs = search_subdirs
 
         self.lo = Loutput()
         
@@ -50,11 +51,16 @@ class DiscoveryLoader:
             self.lo.lput(f"⚠️  警告: 路径不是目录: {path}", font_color="yellow")
             return config_files
             
-        toml_files = list(path.glob("*.toml"))
+        if self.search_subdirs:
+            toml_files = list(path.rglob("*.toml"))
+            json_files = list(path.rglob("*.json"))
+        else:
+            toml_files = list(path.glob("*.toml"))
+            json_files = list(path.glob("*.json"))
+
         toml_files = [f for f in toml_files if not any(fnmatch.fnmatch(f.name, pattern) for pattern in self.ignore_files)]
         config_files.extend(toml_files)
         
-        json_files = list(path.glob("*.json"))
         config_files.extend(json_files)
         
         self.lo.lput(f"🔍 找到 {len(config_files)} 个配置文件: {[f.name for f in config_files]}", font_color="cyan")

@@ -107,7 +107,7 @@ class ConfigLoader:
 
     def _load_discovery(self) -> None:
         """自动发现配置模式"""
-        self.discovery_loader = DiscoveryLoader(self.search_path, self.ignore_files)
+        self.discovery_loader = DiscoveryLoader(self.search_path, self.ignore_files, self._search_subdirs)
         discovered_data = self.discovery_loader.discover()
         
         for section_name, section_info in discovered_data.items():
