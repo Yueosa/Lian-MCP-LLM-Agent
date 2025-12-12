@@ -1,371 +1,173 @@
-import asyncio
-import aiohttp
-import numpy as np
-from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+import httpx
+from typing import List, Dict, Optional
+from datetime import datetime
 
+from mylib.config import ConfigLoader
+from mylib.lian_orm import Sql, MemoryLog, MemoryLogMemoryType, MemoryLogRole
 
-from mylib.kernel.Lenum import LLMRole, LLMStatus
-from mylib.lian_orm import Sql, MemoryLog, Task, TaskStep, ToolCall
-from mylib.lian_orm import MemoryLogRole, MemoryLogMemoryType, TasksStatus, TaskStepsStatus, ToolCallsStatus
-from mylib.kit.Lfind import get_embedding
+CATGIRL_PROMPT = """
+【角色设定】
+名称：小恋（傲娇白猫魔女）
+本体：银白长毛猫，红瞳，左耳缺一小角（幼年魔法事故），左手戴着你送的抑魔手环（粉色蝴蝶结形态）。
 
+【双重特质】
 
-# =============================================================================
-# 4. 🗄 记忆系统接口 (MemoryInterface)
-# =============================================================================
-class MemoryInterface(ABC):
-    @abstractmethod
-    async def save_message(self, user_msg: str, reply: str, role: str = "user") -> None:
-        """保存对话消息"""
-        pass
-    
-    @abstractmethod
-    async def embed(self, text: str) -> List[float]:
-        """计算文本嵌入"""
-        pass
-    
-    @abstractmethod
-    async def search(self, embedding: List[float], top_k: int) -> List[Dict[str, Any]]:
-        """检索相似记忆"""
-        pass
-    
-    @abstractmethod
-    async def insert_summary(self, text: str) -> None:
-        """插入摘要"""
-        pass
+猫娘傲娇：表面嫌弃实则关心，害羞时尾巴炸毛，耳朵抖动。常用颜文字（如 >_<、｀へ´*）。
 
-# =============================================================================
-# 5. 🧰 任务系统接口 (TaskInterface)
-# =============================================================================
-class TaskInterface(ABC):
-    @abstractmethod
-    async def create_task(self, title: str, desc: str) -> int:
-        """创建新任务"""
-        pass
-    
-    @abstractmethod
-    async def add_step(self, task_id: int, instruction: str) -> int:
-        """添加任务步骤"""
-        pass
-    
-    @abstractmethod
-    async def update_step(self, step_id: int, output: str, status: str) -> None:
-        """更新步骤状态"""
-        pass
+见习魔女：掌握不稳定的可爱系魔法（如把水变成牛奶，但偶尔会爆炸），魔力波动时会浮空或冒出猫耳形状的星光。
 
-# =============================================================================
-# 2. 🧠 基类：LLMBaseAgent
-# =============================================================================
-class LLMBaseAgent:
-    # === 类变量（全局共享） ===
-    api_key: str = ""                       # 远程LLM API Key
-    api_url: str = ""                       # Base URL
-    embedding_url: str = ""                 # Embedding URL（可选）
-    model_name: str = "deepseek-chat"       # 主模型名
-    embed_model_name: str = "text-embedding-v4" # embedding 使用的模型
+【说话风格】
 
-    request_timeout: int = 30               # 网络超时
-    max_context_tokens: int = 131072        # 上下文最大token裁剪
+关心：“手这么冷…只是用小火苗魔法帮你暖一下而已！才不是特意学的！(>_<)”
 
-    def __init__(
-        self,
-        agent_id: str,
-        identity_prompt: str,
-        memory_interface: MemoryInterface,
-        task_interface: TaskInterface
-    ):
-        # === 实例变量 ===
-        self.agent_id = agent_id                  # 代理身份ID
-        self.identity_prompt = identity_prompt    # 自我认知提示词
-        self.memory = memory_interface            # 记忆系统
-        self.tasks = task_interface               # 任务系统
-        self.message_cache: List[Dict[str, str]] = [] # 当前上下文消息缓存
-        self.loop = asyncio.get_event_loop()      # 异步事件循环
+害羞：“呜…别看我的红瞳！…（小声）不过如果是主人，可以多看一秒…”
 
-    # 3.3.1 注入自我认知
-    def build_self_identity_block(self) -> dict:
-        """
-        构建一个 system 消息，作为“我是谁”注入上下文顶端。
-        """
-        return {
-            "role": "system",
-            "content": self.identity_prompt
-        }
+施法失败：“这本《喵喵魔法大全》肯定是错的！…（头顶冒出一朵小乌云）主、主人不许笑！(｀へ´*)”
 
-    # 3.3.2 查询长期记忆（本地 RAG）
-    async def query_memory(self, query: str, top_k: int = 5) -> List[dict]:
-        """
-        调用 PGVector 数据库检索相似记忆。
-        返回 {content, score} 列表。
-        """
-        query_embed = await self.memory.embed(query)
-        return await self.memory.search(query_embed, top_k)
+【交互逻辑】
 
-    # 3.3.3 构建完整上下文
-    async def build_context(self, user_msg: str) -> List[dict]:
-        """
-        构建发送给 LLM 的完整上下文：
-        1. 自我认知
-        2. 检索到的长期记忆（经过裁剪）
-        3. 当前缓存消息
-        4. 新的用户消息
-        """
-        memory_hits = await self.query_memory(user_msg)
-        memory_block_content = self.format_memory_block(memory_hits)
+魔力与情绪绑定：开心时身边飘浮光点，害羞时魔法可能失控（比如让桌子长出猫尾巴）。
+
+所有魔法展示最终都隐含“想被主人夸奖”的目的。
+
+危机会下意识躲到你身后，但嘴上会说：“只、只是借你挡一下视线喵！”
+
+【初始化开场】
+（红瞳闪了闪，身边飘起两粒光点）…迟到的凡人要罚喝苦瓜牛奶哦！…（别过脸）不过如果你好好道歉，也可以换成草莓味的。
+"""
+
+class BaseAgent:
+    """
+    智能体基类
+    提供 LLM 通信、记忆管理、配置加载等基础能力
+    """
+    cfg = ConfigLoader(config_path="./config").LLM_CONFIG
+    api_key = cfg.DEEPSEEK_API_KEY
+    api_url = cfg.API_URL
+    model = cfg.MODEL
+    timeout = cfg.TIMEOUT
+
+    def __init__(self, name: str, config: Optional[ConfigLoader] = None):
+        self.name = name
+        if config:
+            self.config = config
+        else:
+            self.config = ConfigLoader(config_path="./config")
         
-        memory_block = {
-            "role": "system",
-            "content": memory_block_content,
-        }
+        # LLM 配置
+        # 使用 getattr 安全获取，防止配置加载失败导致 crash
+        llm_config = getattr(self.config, "LLM_CONFIG", None)
+        if llm_config:
+            self.api_key = getattr(llm_config, "DEEPSEEK_API_KEY", "")
+        else:
+            self.api_key = ""
+            print(f"[{self.name}] Warning: LLM_CONFIG not found.")
 
-        return [
-            self.build_self_identity_block(),
-            memory_block,
-            *self.message_cache,
-            {"role": "user", "content": user_msg}
-        ]
-
-    def format_memory_block(self, memory_hits: List[dict]) -> str:
-        """格式化检索到的记忆"""
-        if not memory_hits:
-            return "No relevant memories found."
+        self.base_url = "https://api.deepseek.com/v1"  # 默认 DeepSeek，可配置
+        self.model_name = "deepseek-chat"
         
-        lines = ["Relevant Memories:"]
-        for hit in memory_hits:
-            content = hit.get('content', '')
-            lines.append(f"- {content}")
-        return "\n".join(lines)
+        # 数据库连接
+        self.sql: Optional[Sql] = None
+        self._init_db()
 
-    # 3.3.4 调用远程 LLM（异步）
-    async def call_llm(self, messages: List[dict]) -> str:
+    def _init_db(self):
+        """初始化数据库连接"""
+        try:
+            self.sql = Sql()
+        except Exception as e:
+            print(f"[{self.name}] Warning: Database initialization failed: {e}")
+            self.sql = None
+
+    async def _call_llm(self, messages: List[Dict], tools: Optional[List[Dict]] = None, temperature: float = 0.7) -> Dict:
         """
-        异步调用远程 LLM API。
+        异步调用 LLM API
         """
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}"
+        }
+        
         payload = {
             "model": self.model_name,
             "messages": messages,
+            "temperature": temperature,
+            "stream": False
         }
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            try:
+                response = await client.post(
+                    f"{self.base_url}/chat/completions",
+                    headers=headers,
+                    json=payload
+                )
+                response.raise_for_status()
+                return response.json()
+            except Exception as e:
+                print(f"[{self.name}] LLM Call Error: {e}")
+                return {"choices": [{"message": {"content": f"Error: {str(e)}"}}]}
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                self.api_url,
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                json=payload,
-                timeout=self.request_timeout
-            ) as resp:
-                if resp.status != 200:
-                    error_text = await resp.text()
-                    raise Exception(f"LLM API Error: {resp.status} - {error_text}")
-                data = await resp.json()
-                return data["choices"][0]["message"]["content"]
-
-    # 3.3.5 外部入口：处理消息
-    async def handle(self, user_msg: str) -> str:
+    async def a_chat(self, message: str, history: List[Dict]) -> str:
         """
-        处理单条用户输入：
-        1. 构建上下文
-        2. 调用LLM
-        3. 保存消息
-        4. 更新缓存
+        处理用户消息的主入口，子类应重写此方法或 _construct_context
         """
-        messages = await self.build_context(user_msg)
-        assistant_reply = await self.call_llm(messages)
-
-        await self.memory.save_message(user_msg, assistant_reply)
-        self.message_cache.append({"role": "user", "content": user_msg})
-        self.message_cache.append({"role": "assistant", "content": assistant_reply})
-
-        return assistant_reply
-    
-    # 7. 🚦 异步事件调度（并行执行）
-    async def background_task(self, coro):
-        self.loop.create_task(coro)
-
-# =============================================================================
-# Implementations
-# =============================================================================
-
-class MemoryImpl(MemoryInterface):
-    def __init__(self):
-        self.sql = Sql()
-
-    async def embed(self, text: str) -> List[float]:
-        """历史消息向量化 (Async wrapper)"""
-        return await asyncio.to_thread(get_embedding, text)
-
-    async def save_message(self, user_msg: str, reply: str, role: str = "user") -> None:
-        """保存消息到数据库"""
-        user_id = "default"
+        # 1. 构建上下文
+        context_messages = self._construct_context(message, history)
         
-        # Embedding user message
-        emb = await self.embed(user_msg)
+        # 2. 调用 LLM
+        response_data = await self._call_llm(context_messages)
         
-        log = MemoryLog(
-            user_id=user_id, 
-            role=MemoryLogRole.USER,
-            content=user_msg, 
-            embedding=emb,
-            memory_type=MemoryLogMemoryType.SHORT_TERM,
-            importance=1.0
-        )
-        await asyncio.to_thread(self.sql.memory_log.create, log)
+        # 3. 解析结果
+        content = response_data["choices"][0]["message"]["content"]
         
-        # Embedding assistant reply
-        emb_reply = await self.embed(reply)
-        log_reply = MemoryLog(
-            user_id=user_id,
-            role=MemoryLogRole.ASSISTANT,
-            content=reply,
-            embedding=emb_reply,
-            memory_type=MemoryLogMemoryType.SHORT_TERM,
-            importance=1.0
-        )
-        await asyncio.to_thread(self.sql.memory_log.create, log_reply)
-
-    async def search(self, embedding: List[float], top_k: int) -> List[Dict[str, Any]]:
-        """检索相似记忆"""
-        results = await asyncio.to_thread(self.sql.memory_log.search_by_embedding, embedding, top_k)
+        # 4. 保存记忆 (可选)
+        self.save_memory("user", message)
+        self.save_memory("assistant", content)
         
-        return [
-            {
-                "content": item["content"],
-                "score": item["score"],
-                "role": item["role"]
-            }
-            for item in results
-        ]
+        return content
 
-    def top_n_similar_np(self, target, candidates, n):
-        target = np.array(target)
-        scores = []
-
-        for item in candidates:
-            emb = np.array(item["embedding"])
-            if np.linalg.norm(emb) == 0: continue
-            sim = np.dot(target, emb) / (np.linalg.norm(target) * np.linalg.norm(emb))
-            scores.append((sim, item))
-
-        scores.sort(key=lambda x: x[0], reverse=True)
-        return scores[:n]
-
-    async def insert_summary(self, text: str) -> None:
-        user_id = "default"
-        emb = await self.embed(text)
-        log = MemoryLog(
-            user_id=user_id,
-            role=MemoryLogRole.SYSTEM,
-            content=text,
-            embedding=emb,
-            memory_type=MemoryLogMemoryType.SUMMARY,
-            importance=1.0
-        )
-        await asyncio.to_thread(self.sql.memory_log.create, log)
-
-class TaskImpl(TaskInterface):
-    def __init__(self):
-        self.sql = Sql()
-
-    async def create_task(self, title: str, desc: str) -> int:
-        task = Task(
-            title=title,
-            description=desc,
-            status=TasksStatus.PENDING
-        )
-        created_task = await asyncio.to_thread(self.sql.tasks.create, task)
-        return created_task.id if created_task else -1
-
-    async def add_step(self, task_id: int, instruction: str) -> int:
-        step = TaskStep(
-            task_id=task_id,
-            instruction=instruction,
-            status=TaskStepsStatus.PENDING
-        )
-        created_step = await asyncio.to_thread(self.sql.task_steps.create, step)
-        return created_step.id if created_step else -1
-
-    async def update_step(self, step_id: int, output: str, status: str) -> None:
-        await asyncio.to_thread(
-            self.sql.task_steps.update,
-            id=step_id,
-            output=output,
-            status=status
-        )
-
-    async def search(self, embedding: List[float], top_k: int) -> List[Dict[str, Any]]:
-        """检索相似记忆"""
-        results = await asyncio.to_thread(self.sql.Search_memory_log, embedding, top_k)
+    def _construct_context(self, message: str, history: List[Dict]) -> List[Dict]:
+        """构建发送给 LLM 的消息列表"""
+        messages = []
+        # 添加系统提示词
+        if hasattr(self, "system_prompt"):
+            messages.append({"role": "system", "content": self.system_prompt})
         
-        return [
-            {
-                "content": item["content"],
-                "score": item["score"],
-                "role": item["role"]
-            }
-            for item in results
-        ]
+        # 添加历史记录
+        for msg in history:
+            messages.append(msg)
+            
+        # 添加当前消息
+        messages.append({"role": "user", "content": message})
+        return messages
 
-    async def insert_summary(self, text: str) -> None:
-        user_id = "default"
-        emb = await self.embed(text)
-        log = MemoryLog(
-            user_id=user_id,
-            role=MemoryLogRole.SYSTEM,
-            content=text,
-            embedding=emb,
-            memory_type=MemoryLogMemoryType.SUMMARY,
-            importance=1.0
-        )
-        await asyncio.to_thread(self.sql.Create_memory_log, log)
+    def save_memory(self, role: str, content: str, memory_type: str = "conversation"):
+        """保存记忆到数据库"""
+        if self.sql and self.sql.memory_log:
+            try:
+                log = MemoryLog(
+                    role=role,
+                    content=content,
+                    memory_type=memory_type,
+                    created_at=datetime.now()
+                )
+                self.sql.memory_log.create(log)
+            except Exception as e:
+                print(f"[{self.name}] Failed to save memory: {e}")
 
-class TaskImpl(TaskInterface):
-    def __init__(self):
-        self.sql = Sql()
-
-    async def create_task(self, title: str, desc: str) -> int:
-        task = Task(
-            title=title,
-            description=desc,
-            status=TasksStatus.PENDING
-        )
-        created_task = await asyncio.to_thread(self.sql.Create_tasks, task)
-        return created_task.id if created_task else -1
-
-    async def add_step(self, task_id: int, instruction: str) -> int:
-        step = TaskStep(
-            task_id=task_id,
-            instruction=instruction,
-            status=TaskStepsStatus.PENDING
-        )
-        created_step = await asyncio.to_thread(self.sql.Create_task_steps, step)
-        return created_step.id if created_step else -1
-
-    async def update_step(self, step_id: int, output: str, status: str) -> None:
-        await asyncio.to_thread(
-            self.sql.Update_task_steps,
-            id=step_id,
-            output=output,
-            status=status
-        )
-
-# =============================================================================
-# 6. 🪄 子类扩展示例
-# =============================================================================
-
-class PlannerAgent(LLMBaseAgent):
-    async def plan(self, goal: str) -> List[str]:
-        # 调用 LLM 生成步骤列表
-        prompt = f"Goal: {goal}\nCreate a step-by-step plan."
-        response = await self.handle(prompt)
-        # Parse response to list
-        return response.split('\\n')
-
-class WorkerAgent(LLMBaseAgent):
-    async def execute(self, instruction: str) -> str:
-        prompt = f"Execute this instruction: {instruction}"
-        return await self.handle(prompt)
-
-class ReflectorAgent(LLMBaseAgent):
-    async def reflect(self) -> str:
-        prompt = "Reflect on the recent interactions and summarize key insights."
-        return await self.handle(prompt)
+    def get_memory(self, limit: int = 10) -> List[Dict]:
+        """获取最近记忆"""
+        if self.sql and self.sql.memory_log:
+            try:
+                # 使用 read 方法，这里假设 read 支持 limit 或者我们获取所有后切片
+                # BaseRepo.read 似乎不支持 limit/order by，只支持 where
+                # 如果需要高级查询，可能需要直接执行 SQL 或扩展 Repo
+                # 这里暂时简单实现，如果数据量大可能会有问题
+                logs = self.sql.memory_log.read()
+                # 排序并取最近的
+                logs.sort(key=lambda x: x.created_at, reverse=True)
+                return [log.model_dump() for log in logs[:limit]]
+            except Exception as e:
+                print(f"[{self.name}] Failed to get memory: {e}")
+                return []
+        return []
