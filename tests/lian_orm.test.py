@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from mylib.kit import Loutput
 from mylib.lian_orm import Sql
 from mylib.lian_orm.models import Task, TaskStep, ToolCall
-from mylib.lian_orm.models import tasks_status, task_steps_status, tool_calls_status
+from mylib.lian_orm.models import TasksStatus, TaskStepsStatus, ToolCallsStatus
 
 
 # 初始化
@@ -128,7 +128,7 @@ lo.lput(f"\n清理了 {cleanup_count} 条旧测试数据\n", font_color="yellow"
 lo.lput("【测试 2.1】创建记录 (Create)", font_color="yellow")
 lo.lput("说明: 使用 Pydantic 模型创建新记录", font_color="white")
 lo.lput("代码示例: ", font_color="gray")
-lo.lput("  task = Task(user_id='test', title='新任务', status=tasks_status.pending)", font_color="gray")
+lo.lput("  task = Task(user_id='test', title='新任务', status=TasksStatus.pending)", font_color="gray")
 lo.lput("  created = sql.tasks.create(task)", font_color="gray")
 
 created_task = None
@@ -137,7 +137,7 @@ try:
         user_id="test_sql_tutorial",
         title="完整测试任务",
         description="这是一个用于测试 SQL ORM 所有功能的任务",
-        status=tasks_status.pending
+        status=TasksStatus.pending
     )
     created_task = sql.tasks.create(task)
     test_case(
@@ -180,27 +180,27 @@ lo.lput("  success = sql.tasks.update(task_id, status='running', title='新标�
 
 try:
     # 更新单个字段
-    success1 = sql.tasks.update(created_task.id, status=tasks_status.running)
+    success1 = sql.tasks.update(created_task.id, status=TasksStatus.running)
     
     # 验证更新
     updated_task = sql.tasks.read(id=created_task.id)[0]
     test_case(
         "更新任务状态", 
-        updated_task.status == tasks_status.running,
+        updated_task.status == TasksStatus.running,
         f"状态已更新为: {updated_task.status.value}"
     )
     
     # 更新多个字段
     success2 = sql.Update_tasks(
         created_task.id, 
-        status=tasks_status.done,
+        status=TasksStatus.done,
         description="已完成的任务描述"
     )
     
     updated_task2 = sql.Read_tasks(id=created_task.id)[0]
     test_case(
         "更新多个字段",
-        updated_task2.status == tasks_status.done,
+        updated_task2.status == TasksStatus.done,
         f"状态: {updated_task2.status.value}, 描述已更新"
     )
 except Exception as e:
@@ -209,16 +209,16 @@ except Exception as e:
 lo.lput("\n【测试 2.4】枚举值处理", font_color="yellow")
 lo.lput("说明: ORM 自动处理枚举类型的转换", font_color="white")
 lo.lput("支持的枚举类型: ", font_color="gray")
-lo.lput("  - tasks_status: pending, running, done, failed", font_color="gray")
-lo.lput("  - task_steps_status: pending, running, done, failed", font_color="gray")
-lo.lput("  - tool_calls_status: success, failed", font_color="gray")
+lo.lput("  - TasksStatus: pending, running, done, failed", font_color="gray")
+lo.lput("  - TaskStepsStatus: pending, running, done, failed", font_color="gray")
+lo.lput("  - ToolCallsStatus: success, failed", font_color="gray")
 
 try:
     # 使用枚举对象
     task_enum = Task(
         user_id="test_sql_tutorial",
         title="枚举测试任务",
-        status=tasks_status.pending  # 使用枚举对象
+        status=TasksStatus.pending  # 使用枚举对象
     )
     created_enum = sql.Create_tasks(task_enum)
     
@@ -228,7 +228,7 @@ try:
     updated = sql.Read_tasks(id=created_enum.id)[0]
     test_case(
         "枚举类型处理",
-        updated.status == tasks_status.running,
+        updated.status == TasksStatus.running,
         "枚举和字符串均可正确处理"
     )
     
@@ -252,14 +252,14 @@ lo.lput("  created_step = sql.task_steps.create(step)", font_color="gray")
 created_steps = []
 try:
     # 重置任务状态为 pending
-    sql.tasks.update(created_task.id, status=tasks_status.pending)
+    sql.tasks.update(created_task.id, status=TasksStatus.pending)
     
     # 创建多个步骤
     steps_data = [
-        {"step_index": 1, "instruction": "初始化项目环境", "status": task_steps_status.done},
-        {"step_index": 2, "instruction": "加载配置文件", "status": task_steps_status.done},
-        {"step_index": 3, "instruction": "连接数据库", "status": task_steps_status.running},
-        {"step_index": 4, "instruction": "执行业务逻辑", "status": task_steps_status.pending},
+        {"step_index": 1, "instruction": "初始化项目环境", "status": TaskStepsStatus.done},
+        {"step_index": 2, "instruction": "加载配置文件", "status": TaskStepsStatus.done},
+        {"step_index": 3, "instruction": "连接数据库", "status": TaskStepsStatus.running},
+        {"step_index": 4, "instruction": "执行业务逻辑", "status": TaskStepsStatus.pending},
     ]
     
     for step_data in steps_data:
@@ -329,7 +329,7 @@ try:
         tool_name="database_query",
         arguments={"query": "SELECT * FROM users"},
         response={"rows": 100, "time": "0.05s"},
-        status=tool_calls_status.success
+        status=ToolCallsStatus.success
     )
     created_tool = sql.tool_calls.create(tool_call)
     
@@ -479,7 +479,7 @@ try:
     task_no_steps = Task(
         user_id="test_sql_tutorial",
         title="无步骤任务",
-        status=tasks_status.pending
+        status=TasksStatus.pending
     )
     created_no_steps = sql.tasks.create(task_no_steps)
     
@@ -619,7 +619,7 @@ try:
             user_id="test_sql_tutorial",
             title=f"批量任务 {i+1}",
             description=f"这是第 {i+1} 个批量创建的任务",
-            status=tasks_status.pending
+            status=TasksStatus.pending
         )
         created = sql.tasks.create(task)
         batch_tasks.append(created)
@@ -669,7 +669,7 @@ try:
     update_count = 0
     for task in pending_tasks:
         if "批量任务" in task.title:
-            sql.tasks.update(task.id, status=tasks_status.running)
+            sql.tasks.update(task.id, status=TasksStatus.running)
             update_count += 1
     
     # 验证更新
@@ -722,7 +722,7 @@ try:
     cascade_task = Task(
         user_id="test_sql_tutorial",
         title="级联删除测试任务",
-        status=tasks_status.pending
+        status=TasksStatus.pending
     )
     cascade_created = sql.tasks.create(cascade_task)
     
@@ -733,7 +733,7 @@ try:
             task_id=cascade_created.id,
             step_index=i+1,
             instruction=f"步骤 {i+1}",
-            status=task_steps_status.pending
+            status=TaskStepsStatus.pending
         )
         cascade_steps.append(sql.task_steps.create(step))
     
@@ -789,7 +789,7 @@ try:
             },
             "timestamp": "2025-11-24T10:00:00Z"
         },
-        status=tool_calls_status.success
+        status=ToolCallsStatus.success
     )
     created_json_tool = sql.tool_calls.create(json_tool)
     
@@ -822,7 +822,7 @@ try:
         step_index=99,
         instruction="可选字段测试",
         # output 不提供（默认为 None）
-        status=task_steps_status.pending
+        status=TaskStepsStatus.pending
     )
     created_optional = sql.task_steps.create(optional_step)
     
