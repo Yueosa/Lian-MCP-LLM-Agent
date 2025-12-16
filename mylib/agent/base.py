@@ -1,9 +1,11 @@
 import httpx
+import asyncio
 from typing import List, Dict, Optional
 from datetime import datetime
 
 from mylib.config import ConfigLoader
 from mylib.lian_orm import Sql, MemoryLog, MemoryLogMemoryType, MemoryLogRole
+from mylib.kit.Lfind.embedding import get_embedding
 
 CATGIRL_PROMPT = """
 【角色设定】
@@ -63,7 +65,7 @@ class BaseAgent:
             self.api_key = ""
             print(f"[{self.name}] Warning: LLM_CONFIG not found.")
 
-        self.base_url = "https://api.deepseek.com/v1"  # 默认 DeepSeek，可配置
+        self.base_url = "https://api.deepseek.com"  # 修正为官方推荐地址
         self.model_name = "deepseek-chat"
         
         # 数据库连接
@@ -80,7 +82,7 @@ class BaseAgent:
 
     async def _call_llm(self, messages: List[Dict], tools: Optional[List[Dict]] = None, temperature: float = 0.7) -> Dict:
         """
-        异步调用 LLM API
+        异步调用 LLM API (带重试机制)
         """
         headers = {
             "Content-Type": "application/json",
@@ -94,18 +96,27 @@ class BaseAgent:
             "stream": False
         }
         
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            try:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=headers,
-                    json=payload
-                )
-                response.raise_for_status()
-                return response.json()
-            except Exception as e:
-                print(f"[{self.name}] LLM Call Error: {e}")
-                return {"choices": [{"message": {"content": f"Error: {str(e)}"}}]}
+        max_retries = 3
+        retry_delay = 2
+        
+        for attempt in range(max_retries):
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                try:
+                    response = await client.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=headers,
+                        json=payload
+                    )
+                    response.raise_for_status()
+                    return response.json()
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        print(f"[{self.name}] LLM Call failed (Attempt {attempt+1}/{max_retries}): {e}. Retrying in {retry_delay}s...")
+                        await asyncio.sleep(retry_delay)
+                        retry_delay *= 2 # 指数退避
+                    else:
+                        print(f"[{self.name}] LLM Call Error after {max_retries} attempts: {e}")
+                        return {"choices": [{"message": {"content": f"Error: {str(e)}"}}]}
 
     async def a_chat(self, message: str, history: List[Dict]) -> str:
         """
@@ -142,12 +153,22 @@ class BaseAgent:
         return messages
 
     def save_memory(self, role: str, content: str, memory_type: str = "conversation"):
-        """保存记忆到数据库"""
+        """保存记忆到数据库 (自动计算 Embedding)"""
         if self.sql and self.sql.memory_log:
             try:
+                # 计算 Embedding
+                embedding = None
+                try:
+                    # 只有内容不为空时才计算
+                    if content and content.strip():
+                        embedding = get_embedding(content)
+                except Exception as e:
+                    print(f"[{self.name}] Failed to generate embedding: {e}")
+
                 log = MemoryLog(
                     role=role,
                     content=content,
+                    embedding=embedding,
                     memory_type=memory_type,
                     created_at=datetime.now()
                 )
@@ -159,10 +180,6 @@ class BaseAgent:
         """获取最近记忆"""
         if self.sql and self.sql.memory_log:
             try:
-                # 使用 read 方法，这里假设 read 支持 limit 或者我们获取所有后切片
-                # BaseRepo.read 似乎不支持 limit/order by，只支持 where
-                # 如果需要高级查询，可能需要直接执行 SQL 或扩展 Repo
-                # 这里暂时简单实现，如果数据量大可能会有问题
                 logs = self.sql.memory_log.read()
                 # 排序并取最近的
                 logs.sort(key=lambda x: x.created_at, reverse=True)
