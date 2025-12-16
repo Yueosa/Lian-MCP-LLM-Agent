@@ -1,17 +1,21 @@
 import httpx
 import datetime
 import time
+import asyncio
 
 from uuid import uuid4, UUID
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Union, Any, Iterable
 
 from mylib.config import ConfigLoader
-from mylib.kernel.Lenum import LLMRole, LLMStatus, MemoryLogMemoryType
+from mylib.kernel.Lenum import LLMRole, LLMStatus, MemoryLogMemoryType, MemoryLogRole, LLMContextType
 from mylib.lian_orm import Sql, MemoryLog, Task, TaskStep, ToolCall
 from mylib.kit.Lfind import get_embedding
+from mylib.kit.Loutput import Loutput
+
+from .schema import LLMContext
 
 
-class LLMBaseAgent:
+class BaseAgent:
     # === 配置区 ===
     cfg = ConfigLoader(config_path="./config").LLM
     schema = ConfigLoader(config_path="./schema")
@@ -45,6 +49,7 @@ class LLMBaseAgent:
     def __init_subclasses__(self):
         self.agent_id = uuid4()
         self.db = Sql()
+        self.lo = Loutput()
         self.status = LLMStatus.IDLE
 
         # === 子类必须实例化的变量 ===
@@ -54,10 +59,10 @@ class LLMBaseAgent:
     # === 必须实现的方法 === think = save_memory ===
     def think(self, user_input: str) -> dict:
         """发起一次LLM请求的完整过程"""
-        content = self._construct_context(user_input=user_input)
-        return self._call_llm(content)
+        content = self._build(user_input=user_input) # _build()已经死了, 我建议你重写think()
+        return self._call_llm(content)               # _call_llm()也死了) 建议去看TODO#3
 
-    def save_memory(self, content: str, memmory_type: MemoryLogMemoryType = MemoryLogMemoryType.CONVERSATION):
+    def save_memory(self, role: MemoryLogRole, content: str, memmory_type: MemoryLogMemoryType = MemoryLogMemoryType.CONVERSATION):
         """保存一条对话历史到数据库"""
         if self.db and self.db.memory_log:
             try:
@@ -69,13 +74,13 @@ class LLMBaseAgent:
                     print(f"[{self.name}] Failed to generate embedding: {e}")
 
                 log = MemoryLog(
-                    role=self.role,
+                    role=role,
                     content=content,
                     embedding=embedding,
                     memory_type=memmory_type,
                     created_at=datetime.datetime.now()
                 )
-                self.save_data(data=log)
+                self._save_data(data=log)
             except Exception as e:
                 print(f"[{self.name}] Failed to save memory: {e}")
 
@@ -90,12 +95,19 @@ class LLMBaseAgent:
 
 
     # === 统一子函数封装 === 为主要函数提供底层算法 ===
-    def save_data(self, data: Union[MemoryLog, Task, TaskStep, ToolCall]) -> Any:
+    def _get_emb(self, query: str) -> List[float]:
+        return get_embedding(query)
+
+    def _new_state(self, state: LLMStatus):
+        if isinstance(state, LLMStatus):
+            self.status = state
+
+    def _save_data(self, data: Union[MemoryLog, Task, TaskStep, ToolCall]) -> Any:
         """对数据库的 Create 操作"""
         table = self._model_to_table(data)
         return table.create(data)
 
-    def update_data(self, data: Union[MemoryLog, Task, TaskStep, ToolCall]) -> bool:
+    def _update_data(self, data: Union[MemoryLog, Task, TaskStep, ToolCall]) -> bool:
         """对数据库的 Update 操作"""
         table = self._model_to_table(data)
         return table.update(data)
@@ -113,76 +125,57 @@ class LLMBaseAgent:
         else:
             raise TypeError(f"Unsupported data type: {type(model)}")
 
-    def _call_llm(self, message: List[Dict], temperature: float = 0.7, stream: bool = False) -> Dict:
-        """发起一个LLM会话"""
+    # TODO#3: 你真得好好思考思考这地方需不需要同步阻塞了
+    #         整了一堆变量出来倒是来点作用
+    async def call_llm(
+        self,
+        contexts: List[LLMContext],
+        temperature: float = 0.7,
+        stream: bool = False
+    ) -> Dict[str, Any]:
         delay = self.retry_delay
-        header = {
+
+        headers = {
             "Content-Type": "application/json",
-            "Suthorization": f"Bearer {self.api_key}"
+            "Authorization": f"Bearer {self.api_key}",
         }
+
         payload = {
             "model": self.provider,
-            "message": message,
+            "messages": [ctx.to_dict() for ctx in contexts],
             "temperature": temperature,
-            "stream": stream
+            "stream": stream,
         }
 
         for attempt in range(self.max_retries):
-            with httpx.AsyncClient(timeout=self.api_timeout) as client:
-                try:
-                    response = client.post(
-                        {self.api_url},
-                        headers=header,
-                        json=payload
+            try:
+                async with httpx.AsyncClient(timeout=self.api_timeout) as client:
+                    response = await client.post(
+                        self.api_url,
+                        headers=headers,
+                        json=payload,
                     )
                     response.raise_for_status()
                     return response.json()
-                except Exception as e:
-                    if attempt < self.max_retries -1:
-                        print(f"[{self.name}] LLM Call failed (Attempt {attempt+1}/{self.max_retries}): {e}. Retrying in {delay}s...")
-                        time.sleep(delay)
-                        delay *= 2 # 指数退避
-                    else:
-                        print(f"[{self.name}] LLM Call Error after {self.max_retries} attempts: {e}")
-                        return {"choices": [{"message": {"content": f"Error: {str(e)}"}}]}
 
+            except Exception as e:
+                if attempt < self.max_retries - 1:
+                    print(
+                        f"[{self.agent_id}] LLM Call failed "
+                        f"(Attempt {attempt+1}/{self.max_retries}): {e} "
+                        f"Retrying in {delay}s..."
+                    )
+                    await asyncio.sleep(delay)
+                    delay *= 2
+                else:
+                    print(
+                        f"[{self.agent_id}] LLM Call Error after "
+                        f"{self.max_retries} attempts: {e}"
+                    )
+                    return {
+                        "choices": [
+                            {"message": {"content": f"Error: {str(e)}"}}
+                        ]
+                    }
 
-    def _construct_context(self, user_input: str):
-        """维护memory, 拼接上下文"""
-        message = []
-        # 自我认知
-        if hasattr(self, "description"):
-            message.append({"role": "system", "content": self.description})
-
-        # 任务列表
-        if hasattr(self, "goals"):
-            message.append({"role": "system", "content": self.goals})
-        
-        # 发送/回复格式
-        if hasattr(self, "request_schema"):
-            message.append
-        
-        # 短期历史记录
-        if hasattr(self, "memory"):
-            message.append(self.memory)
-        
-        # 当前消息
-        message.append({"role": "user", "content": user_input})
-        
-        return message
-
-    def build(self, user_input: str, fields=None):
-        """上下文构造器"""
-        if fields is None:
-            fields = ["description", "goals", "request_schema", "response_schema"]
-
-        msg = []
-        for f in fields:
-            if hasattr(self, f):
-                msg.append({"role": "system", "content": getattr(self, f)})
-
-        if hasattr(self, "memory"):
-            msg.append(self.memory)
-
-        msg.append({"role": "user", "content": user_input})
-        return msg
+    def _build(self):...
