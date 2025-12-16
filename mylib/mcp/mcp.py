@@ -81,6 +81,9 @@ class MCPServer:
             return {
                 "message": "欢迎使用 MCP Server !",
                 "endpoints": {
+                    "/": "获取服务状态",
+                    "/help": "获取服务帮助",
+                    "/healthy": "健康检查",
                     "/tools": "获取所有可用工具列表",
                     "/tools/{tool_name}": "获取指定工具的详细信息",
                     "/tools/{tool_name}/call": "调用单个工具",
