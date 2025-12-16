@@ -1,11 +1,8 @@
-import json
 from typing import List, Dict, Any
 from .base import BaseAgent
 from mylib.kit.Lfind.embedding import get_embedding
-from mylib.kernel.Lenum.lian_orm import MemoryLogMemoryType
 from mylib.kit.Loutput import Loutput, FontColor8
 
-import asyncio
 
 class RAGAgent(BaseAgent):
     """
