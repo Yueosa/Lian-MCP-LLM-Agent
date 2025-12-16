@@ -23,6 +23,10 @@ class LLMRole(Enum):
     # 责总结整个对话、输出最终报告或总结
     # 对应：Summarizer / Dialog Review / Safety Layer
 
+    ARCHIVER = "Archiver"
+    # 负责将关键信息、长期记忆、结构化数据保存到数据库
+    # 对应：Memory Writer / Persistence Agent / Data Archivist
+
 
 class LLMStatus(Enum):
     """大模型状态枚举"""
@@ -34,3 +38,15 @@ class LLMStatus(Enum):
 
     FINISHED = "finished"
     # 任务结束，可进入下一个任务或销毁
+
+
+class LLMContextType(str, Enum):
+    """上下文角色类型"""
+    SYSTEM = "system"        
+    # 系统规则 / 人设 / 行为约束
+    USER = "user"            
+    # 用户输入
+    ASSISTANT = "assistant"  
+    # 模型输出
+    TOOL = "tool"            
+    # 工具返回（可选，未来用）

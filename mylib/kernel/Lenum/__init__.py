@@ -1,5 +1,5 @@
 # 枚举类
-from .agent import LLMRole, LLMStatus
+from .agent import LLMRole, LLMStatus, LLMContextType
 
 from .lian_orm import (
     MemoryLogRole,
@@ -17,6 +17,7 @@ __all__ = [
     # agent
     "LLMRole",
     "LLMStatus",
+    "LLMContextType",
 
     # lian_orm
     "MemoryLogRole",
