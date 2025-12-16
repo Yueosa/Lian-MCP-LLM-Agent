@@ -18,11 +18,11 @@ class MemoryLogRole(Enum):
 
 class MemoryLogMemoryType(Enum):
     """
-    conversation: 对话
-    summary: 总结
-    reflection: 反思
-    preference: 偏好
-    plan: 计划
+    conversation: 对话  # 记录用于与大模型的单次对话 (用于默认情况)
+    summary: 总结       # 记录大模型最后一次回复 (目前用于summary)
+    reflection: 反思    # 记录大模型自己的调用 (目前用于executor)
+    preference: 偏好    # 记录用户喜好
+    plan: 计划          # 记录计划信息 (目前用于planner)
     """
     CONVERSATION = 'conversation'
     SUMMARY = 'summary'
