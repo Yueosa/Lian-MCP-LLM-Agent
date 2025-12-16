@@ -3,6 +3,7 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from .base import BaseAgent, CATGIRL_PROMPT
 from mylib.lian_orm.models import ToolCall, ToolCallsStatus, TaskStepsStatus
+from mylib.kit.Loutput import Loutput, FontColor8
 
 class ExecutorAgent(BaseAgent):
     """
@@ -12,9 +13,10 @@ class ExecutorAgent(BaseAgent):
     
     def __init__(self, name: str = "Executor_Expert", tools: List[Dict] = None):
         super().__init__(name)
+        self.lo = Loutput()
         self.tools = tools or []
         self.system_prompt = self._build_system_prompt()
-        self.max_rounds = 10
+        self.max_rounds = 100
 
     def _build_system_prompt(self) -> str:
         tools_json = json.dumps(self.tools, indent=2, ensure_ascii=False)
@@ -47,9 +49,17 @@ TOOL_CALL_END
 
 然后给出你的最终答案。
 
-注意：不要在工具调用阶段尝试回答问题，先完成所有必要的工具调用，最后统一回答。
-
-{CATGIRL_PROMPT}
+重要限制：
+1. 你的回答必须非常简练、客观。
+2. 不要输出任何闲聊、问候或解释性文字，除非是最终答案的一部分。
+3. **最终答案要求**: 当你完成所有工具调用后，请对执行结果进行一个"小总结" (Small Summary)。
+   - 提炼关键数据和结果。
+   - 格式清晰，便于后续的 SummaryAgent 读取。
+   - 不要包含"我已完成任务"之类的废话，直接给结果。
+4. 严禁询问用户问题。
+5. **工具使用建议**: 
+   - 如果需要从网页获取信息，优先使用支持提取特定元素或标签的工具（如 `web_extract_elements`），而不是直接抓取整个页面。
+   - 避免一次性请求大量数据，防止上下文溢出。
 """
 
     async def a_chat(self, message: str, history: List[Dict], tool_handler: Optional[callable] = None, task_id: int = None, step_id: int = None) -> str:
@@ -110,6 +120,21 @@ TOOL_CALL_END
                         else:
                             result = f"Error: No tool handler provided for {t_name}"
                         
+                        # --- 结果截断逻辑 ---
+                        # 参考 llm_client_web.py 的实现，防止上下文溢出
+                        result_str = json.dumps(result, ensure_ascii=False)
+                        max_len = 10000 # 限制每个工具结果最大长度
+                        if len(result_str) > max_len:
+                            truncated_result = result_str[:max_len] + f"... (Truncated, total length: {len(result_str)})"
+                            # 尝试解析回 JSON 以保持结构 (如果截断导致 JSON 损坏，则作为字符串返回)
+                            try:
+                                result = json.loads(truncated_result)
+                            except:
+                                result = truncated_result
+                            
+                            self.lo.lput(f"[{self.name}] Tool output truncated ({len(result_str)} -> {max_len})", font_color=FontColor8.YELLOW)
+                        # -------------------
+
                         # 更新工具调用结果 (After)
                         if tc_record and self.sql and self.sql.tool_calls:
                             try:
