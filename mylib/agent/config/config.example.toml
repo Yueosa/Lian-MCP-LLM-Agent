@@ -1,0 +1,10 @@
+[LLM_CONFIG]
+DEEPSEEK_API_KEY=""
+# 可选：自定义推理接口地址；不填默认 https://api.deepseek.com/v1/chat/completions
+API_URL="https://api.deepseek.com/v1/chat/completions"
+
+# 可选：主模型名称；不填默认 deepseek-chat
+MODEL="deepseek-chat"
+
+# 可选：HTTP 超时时间（秒）；不填默认 30
+TIMEOUT=30
