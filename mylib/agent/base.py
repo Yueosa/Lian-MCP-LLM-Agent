@@ -6,6 +6,9 @@ from datetime import datetime
 from mylib.config import ConfigLoader
 from mylib.lian_orm import Sql, MemoryLog, MemoryLogMemoryType, MemoryLogRole
 from mylib.kit.Lfind.embedding import get_embedding
+from mylib.kit.Loutput import Loutput
+from mylib.kernel.Lenum import LLMContextType
+
 
 CATGIRL_PROMPT = """
 【角色设定】
@@ -51,6 +54,7 @@ class BaseAgent:
 
     def __init__(self, name: str, config: Optional[ConfigLoader] = None):
         self.name = name
+        self.lo = Loutput()
         if config:
             self.config = config
         else:
@@ -63,9 +67,9 @@ class BaseAgent:
             self.api_key = getattr(llm_config, "DEEPSEEK_API_KEY", "")
         else:
             self.api_key = ""
-            print(f"[{self.name}] Warning: LLM_CONFIG not found.")
+            self.lo.lput(f"[{self.name}] Warning: LLM_CONFIG not found.", font_color="red")
 
-        self.base_url = "https://api.deepseek.com"  # 修正为官方推荐地址
+        self.base_url = "https://api.deepseek.com"
         self.model_name = "deepseek-chat"
         
         # 数据库连接
@@ -113,12 +117,12 @@ class BaseAgent:
                     if attempt < max_retries - 1:
                         print(f"[{self.name}] LLM Call failed (Attempt {attempt+1}/{max_retries}): {e}. Retrying in {retry_delay}s...")
                         await asyncio.sleep(retry_delay)
-                        retry_delay *= 2 # 指数退避
+                        retry_delay *= 2
                     else:
                         print(f"[{self.name}] LLM Call Error after {max_retries} attempts: {e}")
                         return {"choices": [{"message": {"content": f"Error: {str(e)}"}}]}
 
-    async def a_chat(self, message: str, history: List[Dict]) -> str:
+    async def a_chat(self, message: str, history: List[Dict], memory_type: MemoryLogMemoryType = MemoryLogMemoryType.CONVERSATION) -> str:
         """
         处理用户消息的主入口，子类应重写此方法或 _construct_context
         """
@@ -132,8 +136,8 @@ class BaseAgent:
         content = response_data["choices"][0]["message"]["content"]
         
         # 4. 保存记忆 (可选)
-        self.save_memory("user", message)
-        self.save_memory("assistant", content)
+        self.save_memory(MemoryLogRole.USER, message)
+        self.save_memory(MemoryLogRole.ASSISTANT, content, memory_type=memory_type)
         
         return content
 
@@ -152,7 +156,7 @@ class BaseAgent:
         messages.append({"role": "user", "content": message})
         return messages
 
-    def save_memory(self, role: str, content: str, memory_type: str = "conversation"):
+    def save_memory(self, role: MemoryLogRole, content: str, memory_type: MemoryLogMemoryType = MemoryLogMemoryType.CONVERSATION):
         """保存记忆到数据库 (自动计算 Embedding)"""
         if self.sql and self.sql.memory_log:
             try:

@@ -1,6 +1,7 @@
 from typing import List, Dict
 from .base import BaseAgent, CATGIRL_PROMPT
 from mylib.kit.Loutput import Loutput, FontColor8
+from mylib.lian_orm import MemoryLogRole, MemoryLogMemoryType
 
 class SummaryAgent(BaseAgent):
     """
@@ -8,7 +9,7 @@ class SummaryAgent(BaseAgent):
     负责根据所有 Agent 的执行结果，使用猫娘人设生成最终回复
     """
     
-    def __init__(self, name: str = "Summary_Expert"):
+    def __init__(self, name: str = "Summary_Sakurine"):
         super().__init__(name)
         self.lo = Loutput()
         # 使用 BaseAgent 中定义的 CATGIRL_PROMPT
@@ -65,6 +66,11 @@ class SummaryAgent(BaseAgent):
             response = await self._call_llm(messages)
             content = response["choices"][0]["message"]["content"]
             self.lo.lput(f"[{self.name}] Summary generated.", font_color=FontColor8.MAGENTA)
+            
+            # 保存记忆
+            self.save_memory(MemoryLogRole.USER, message)
+            self.save_memory(MemoryLogRole.ASSISTANT, content, memory_type=MemoryLogMemoryType.SUMMARY)
+            
             return content
         except Exception as e:
             self.lo.lput(f"[{self.name}] Summary generation failed: {e}", font_color=FontColor8.RED)

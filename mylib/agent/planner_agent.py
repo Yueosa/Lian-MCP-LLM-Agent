@@ -1,7 +1,7 @@
 import json
 from typing import List, Dict
 from .base import BaseAgent
-from mylib.lian_orm.models import Task, TaskStep, TasksStatus, TaskStepsStatus
+from mylib.lian_orm.models import Task, TaskStep, TasksStatus, TaskStepsStatus, MemoryLogMemoryType
 from mylib.kit.Loutput import Loutput, FontColor8
 
 class PlannerAgent(BaseAgent):
@@ -10,7 +10,7 @@ class PlannerAgent(BaseAgent):
     负责将用户请求拆解为可执行的步骤
     """
     
-    def __init__(self, name: str = "Planner_Expert"):
+    def __init__(self, name: str = "Planner_Lian"):
         super().__init__(name)
         self.lo = Loutput()
         self.system_prompt = """你是一个专业的任务规划专家。
@@ -55,7 +55,7 @@ class PlannerAgent(BaseAgent):
         返回解析后的 JSON 对象
         """
         self.lo.lput(f"[{self.name}] Generating plan...", font_color=FontColor8.MAGENTA)
-        content = await super().a_chat(message, history)
+        content = await super().a_chat(message, history, memory_type=MemoryLogMemoryType.PLAN)
         
         result = {}
         # 尝试解析 JSON

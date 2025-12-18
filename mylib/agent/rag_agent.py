@@ -1,7 +1,9 @@
 from typing import List, Dict, Any
+from datetime import datetime
 from .base import BaseAgent
 from mylib.kit.Lfind.embedding import get_embedding
 from mylib.kit.Loutput import Loutput, FontColor8
+from mylib.lian_orm import MemoryLogRole, MemoryLogMemoryType
 
 
 class RAGAgent(BaseAgent):
@@ -10,7 +12,7 @@ class RAGAgent(BaseAgent):
     负责检索数据库里的记忆，并为其他专家提供精简的上下文支持
     """
     
-    def __init__(self, name: str = "RAG_Expert"):
+    def __init__(self, name: str = "RAG_Sakurine"):
         super().__init__(name)
         self.lo = Loutput()
         self.system_prompt = """你是一个专业的 RAG (Retrieval-Augmented Generation) 记忆总结专家。
@@ -46,7 +48,7 @@ class RAGAgent(BaseAgent):
             self.lo.lput(f"[{self.name}] Keyword extraction failed: {e}", font_color=FontColor8.RED)
             return query
 
-    async def retrieve(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+    async def retrieve(self, query: str, top_k: int = 15) -> List[Dict[str, Any]]:
         """检索相关记忆"""
         if not self.sql or not self.sql.memory_log:
             self.lo.lput(f"[{self.name}] Memory log not initialized.", font_color=FontColor8.YELLOW)
@@ -64,6 +66,11 @@ class RAGAgent(BaseAgent):
             # 3. 数据库向量检索
             self.lo.lput(f"[{self.name}] Step 3: Searching database...", font_color=FontColor8.CYAN)
             results = self.sql.memory_log.search_by_embedding(embedding, top_k)
+            
+            # 简单的按类型重排序/筛选逻辑 (示例: 优先展示 summary)
+            # 假设 results 是 dict 列表
+            results.sort(key=lambda x: (x.get('memory_type') == MemoryLogMemoryType.SUMMARY.value, x.get('score', 0)), reverse=True)
+            
             self.lo.lput(f"[{self.name}] Found {len(results)} memory fragments.", font_color=FontColor8.CYAN)
             return results
         except Exception as e:
@@ -77,7 +84,7 @@ class RAGAgent(BaseAgent):
         self.lo.lput(f"[{self.name}] Starting RAG flow...", font_color=FontColor8.BLUE)
         
         # 1. 检索
-        records = await self.retrieve(message, top_k=5)
+        records = await self.retrieve(message, top_k=15)
         
         if not records:
             self.lo.lput(f"[{self.name}] No records found.", font_color=FontColor8.YELLOW)
@@ -95,7 +102,9 @@ class RAGAgent(BaseAgent):
             
         # 3. 构建 Prompt 让 LLM 总结
         self.lo.lput(f"[{self.name}] Step 4: Summarizing context...", font_color=FontColor8.CYAN)
-        full_message = f"""用户当前请求：
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        full_message = f"""当前时间: {current_time}
+用户当前请求：
 {message}
 
 检索到的历史记忆：
@@ -111,7 +120,7 @@ class RAGAgent(BaseAgent):
         self.lo.lput(f"[{self.name}] RAG Summary generated.", font_color=FontColor8.GREEN)
         
         # 存入记忆
-        self.save_memory("user", message) 
-        self.save_memory("assistant", content, memory_type="summary")
+        self.save_memory(MemoryLogRole.USER, message) 
+        self.save_memory(MemoryLogRole.ASSISTANT, content, memory_type=MemoryLogMemoryType.SUMMARY)
         
         return content
