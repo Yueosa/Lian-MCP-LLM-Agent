@@ -1,6 +1,7 @@
 
 import streamlit as st
 import asyncio
+import os
 from typing import List, Dict, Any
 import time
 
@@ -224,6 +225,10 @@ MCP_HOST = str(config.LLM_CONFIG.MCP_SERVER_HOST)
 MCP_PORT = str(config.LLM_CONFIG.MCP_SERVER_PORT)
 MCP_SERVER_URL = f"http://{MCP_HOST}:{MCP_PORT}"
 
+# Avatar Path
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+USER_AVATAR_PATH = os.path.join(CURRENT_DIR, "avatar.jpg")
+
 def get_remote_tools_list() -> List[Dict]:
     """从 MCP Server 获取工具列表"""
     try:
@@ -269,7 +274,9 @@ def get_avatar(agent_name: str) -> str:
     elif "Summary" in agent_name:
         return "🐱"
     elif "User" in agent_name:
-        return "./avatar.jpg"
+        if os.path.exists(USER_AVATAR_PATH):
+            return USER_AVATAR_PATH
+        return "👤"
     else:
         return "🐱" # 小恋
 
@@ -469,7 +476,8 @@ def main():
         st.session_state.messages.append({"role": "user", "content": prompt, "agent": "User"})
         st.session_state.chat_history.append({"role": "user", "content": prompt})
         
-        with st.chat_message("user", avatar="👤"):
+        user_avatar = USER_AVATAR_PATH if os.path.exists(USER_AVATAR_PATH) else "👤"
+        with st.chat_message("user", avatar=user_avatar):
             st.markdown(prompt)
             
         # 运行异步流程
