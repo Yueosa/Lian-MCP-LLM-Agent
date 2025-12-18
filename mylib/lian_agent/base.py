@@ -1,18 +1,17 @@
 import httpx
 import datetime
 import time
-import asyncio
+import tiktoken
+
 
 from uuid import uuid4, UUID
-from typing import List, Dict, Union, Any, Iterable
+from typing import List, Dict, Union, Any
 
 from mylib.config import ConfigLoader
 from mylib.kernel.Lenum import LLMRole, LLMStatus, MemoryLogMemoryType, MemoryLogRole, LLMContextType
 from mylib.lian_orm import Sql, MemoryLog, Task, TaskStep, ToolCall
 from mylib.kit.Lfind import get_embedding
 from mylib.kit.Loutput import Loutput
-
-from .schema import LLMContext
 
 
 class BaseAgent:
@@ -40,27 +39,116 @@ class BaseAgent:
     description: str                    # 自我认知的内容（System Prompt）
     goals: list[str]                    # 当前目标列表
     memory: list[dict]                  # 短期上下文（部分）
+    memory_tokens: list[int]            # 短期上下文的token
 
     # === 实例变量 === 子类可选实现 ===
     long_memory_ids: list[str]          # 长期记忆在 DB 的存储引用
     parent_id: str | None               # 创建这个 agent 的“父代理”
 
 
-    def __init_subclasses__(self):
+    def __init__(self):
         self.agent_id = uuid4()
         self.db = Sql()
         self.lo = Loutput()
         self.status = LLMStatus.IDLE
+        self.memory = []
+        self.memory_tokens = []
+        self.tokenizer = tiktoken.get_encoding("cl100k_base")
+
 
         # === 子类必须实例化的变量 ===
         # {role, descriptopn, goals}
+
+    def _tokens(self, content: str) -> int:
+        """计算一个content的tokens"""
+        if self.tokenizer:
+            try:
+                return len(self.tokenizer.encode(content))
+            except Exception:
+                return len(content) // 4
+        return len(content) // 4
+
+    def _append_memory(self, role: LLMContextType, content: str):
+        """将一条role: content加入memory"""
+        self.memory.append({"role": role, "content": content})
+        self.memory_tokens.append(self._tokens(content))
 
 
     # === 必须实现的方法 === think = save_memory ===
     def think(self, user_input: str) -> dict:
         """发起一次LLM请求的完整过程"""
-        content = self._build(user_input=user_input) # _build()已经死了, 我建议你重写think()
-        return self._call_llm(content)               # _call_llm()也死了) 建议去看TODO#3
+        contexts = self._build(user_input=user_input)
+        response = self._call_llm(contexts)
+        
+        if "choices" in response and len(response["choices"]) > 0:
+            try:
+                content = response["choices"][0]["message"]["content"]
+                self._append_memory(LLMContextType.ASSISTANT, content)
+            except KeyError:
+                pass
+            
+        return response
+
+    def _build(self, user_input: str) -> List[Dict[LLMContextType, str]]:
+        """构造请求消息"""
+        self._append_memory(LLMContextType.USER, user_input)
+
+        contexts: list[Dict[LLMContextType, str]] = [{
+            "role": LLMContextType.SYSTEM,
+            "content": self.description,
+        }]
+
+        remaining_tokens = self.max_tokens - self._tokens(self.description)
+        start = len(self.memory)
+
+        for i in range(len(self.memory) - 1, -1, -1):
+            tokens = self.memory_tokens[i]
+            if remaining_tokens < tokens:
+                break
+            remaining_tokens -= tokens
+            start = i
+
+        if start > 0:
+            contexts.append({
+                "role": LLMContextType.SYSTEM,
+                "content": "[History Truncated]"
+            })
+
+        contexts.extend(self.memory[start:])
+
+        return contexts
+
+
+    def _call_llm(self, contexts: List[Dict[LLMContextType, str]]) -> Dict[str, Any]:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+
+        payload = {
+            "model": self.provider,
+            "messages": contexts,
+            "temperature": 0.7,
+            "stream": False,
+        }
+
+        for attempt in range(self.max_retries):
+            try:
+                with httpx.Client(timeout=self.api_timeout) as client:
+                    response = client.post(
+                        self.api_url,
+                        headers=headers,
+                        json=payload,
+                    )
+                    response.raise_for_status()
+                    return response.json()
+            except Exception as e:
+                if attempt < self.max_retries - 1:
+                    time.sleep(self.retry_delay * (2 ** attempt))
+                else:
+                    print(f"[{self.agent_id}] LLM Call Error: {e}")
+                    return {"choices": [{"message": {"content": f"Error: {str(e)}"}}]}
+        return {"choices": [{"message": {"content": "Error: Max retries reached"}}]}
 
     def save_memory(self, role: MemoryLogRole, content: str, memmory_type: MemoryLogMemoryType = MemoryLogMemoryType.CONVERSATION):
         """保存一条对话历史到数据库"""
@@ -124,58 +212,3 @@ class BaseAgent:
             return getattr(self.db, "tool_calls")
         else:
             raise TypeError(f"Unsupported data type: {type(model)}")
-
-    # TODO#3: 你真得好好思考思考这地方需不需要同步阻塞了
-    #         整了一堆变量出来倒是来点作用
-    async def call_llm(
-        self,
-        contexts: List[LLMContext],
-        temperature: float = 0.7,
-        stream: bool = False
-    ) -> Dict[str, Any]:
-        delay = self.retry_delay
-
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
-        }
-
-        payload = {
-            "model": self.provider,
-            "messages": [ctx.to_dict() for ctx in contexts],
-            "temperature": temperature,
-            "stream": stream,
-        }
-
-        for attempt in range(self.max_retries):
-            try:
-                async with httpx.AsyncClient(timeout=self.api_timeout) as client:
-                    response = await client.post(
-                        self.api_url,
-                        headers=headers,
-                        json=payload,
-                    )
-                    response.raise_for_status()
-                    return response.json()
-
-            except Exception as e:
-                if attempt < self.max_retries - 1:
-                    print(
-                        f"[{self.agent_id}] LLM Call failed "
-                        f"(Attempt {attempt+1}/{self.max_retries}): {e} "
-                        f"Retrying in {delay}s..."
-                    )
-                    await asyncio.sleep(delay)
-                    delay *= 2
-                else:
-                    print(
-                        f"[{self.agent_id}] LLM Call Error after "
-                        f"{self.max_retries} attempts: {e}"
-                    )
-                    return {
-                        "choices": [
-                            {"message": {"content": f"Error: {str(e)}"}}
-                        ]
-                    }
-
-    def _build(self):...
