@@ -401,6 +401,12 @@ async def run_agent_flow(user_input: str, status_placeholders: Dict):
             "agent": "Summary_Expert", 
             "content": summary_response
         })
+        
+        # 将最终回复加入对话历史，支持多轮对话
+        st.session_state.chat_history.append({
+            "role": "assistant", 
+            "content": summary_response
+        })
 
 def main():
     # --- Sidebar ---
