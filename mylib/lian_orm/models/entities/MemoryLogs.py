@@ -14,7 +14,7 @@ class MemoryLog(RelationalModel):
     
     id: Optional[int] = Field(None, description="主键 ID")
     user_id: str = Field(default="default", description="用户 ID")
-    role: MemoryLogRole = Field(..., description="角色 (user/assistant/system/llm) ")
+    role: MemoryLogRole = Field(..., description="角色 (user/assistant/system/tool) ")
     content: str = Field(default="", description="内容")
     embedding: Optional[List[float]] = Field(default=None, description="向量嵌入 (pgvector) ")
     memory_type: MemoryLogMemoryType = Field(..., description="记忆类型 (conversation/summary/reflection/preference/plan)")

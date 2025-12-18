@@ -9,12 +9,12 @@ class MemoryLogRole(Enum):
     user: 用户
     assistant: 管理员
     system: 系统
-    llm: 大模型
+    tool: 工具调用
     """
+    SYSTEM = 'system'
     USER = 'user'
     ASSISTANT = 'assistant'
-    SYSTEM = 'system'
-    LLM = 'llm'
+    TOOL = 'tool'
 
 class MemoryLogMemoryType(Enum):
     """
