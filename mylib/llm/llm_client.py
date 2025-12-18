@@ -195,14 +195,14 @@ TOOL_CALL_END
                 
                 # 保存记忆
                 self._save_memory_log(MemoryLogRole.USER, user_input)
-                self._save_memory_log(MemoryLogRole.LLM, final_answer)
+                self._save_memory_log(MemoryLogRole.ASSISTANT, final_answer)
                 
                 return final_answer
             
             if "TOOL_CALL:" not in llm_response:
                 # 保存记忆
                 self._save_memory_log(MemoryLogRole.USER, user_input)
-                self._save_memory_log(MemoryLogRole.LLM, llm_response)
+                self._save_memory_log(MemoryLogRole.ASSISTANT, llm_response)
                 
                 return llm_response
             
