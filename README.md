@@ -6,6 +6,47 @@ By - Lian - 2025
 
 ---
 
+## 🚀 快速开始 (Quick Start)
+
+### 1. 环境初始化
+
+本项目推荐使用 `uv` 进行依赖管理和环境配置。
+
+```bash
+# 1. 安装依赖
+uv sync
+
+# 2. 锁定依赖版本 (可选)
+uv lock
+```
+
+### 2. 运行项目
+
+使用 `main.py` 作为统一入口，支持多种运行模式。
+
+```bash
+uv run ./main.py [MODE] [ARGS...]
+```
+
+#### 支持的模式 (MODE)
+
+| 模式     | 描述                                     | 示例命令                                             |
+| :------- | :--------------------------------------- | :--------------------------------------------------- |
+| `agent`  | **[推荐]** 启动新版多专家智能体 Web 界面 | `uv run ./main.py agent`                             |
+| `server` | 启动 MCP 工具服务器                      | `uv run ./main.py server --host 0.0.0.0 --port 8000` |
+| `web`    | 启动旧版 LLM 客户端 Web 界面             | `uv run ./main.py web`                               |
+| `client` | 启动终端交互式 LLM 客户端                | `uv run ./main.py client`                            |
+
+#### 参数说明
+
+*   **server 模式参数**:
+    *   `--host`: 指定监听地址 (默认: 127.0.0.1)
+    *   `--port`: 指定监听端口 (默认: 8000)
+*   **通用参数**:
+    *   `message`: 可选的初始消息 (部分模式支持)
+
+---
+
 ## 🌟 项目核心
 
 #### | 顶层：多专家协作与调度 (论文亮点)
@@ -77,47 +118,30 @@ By - Lian - 2025
 **生产模式**:
 
 ```bash
-uv run python ./main.py server
+uv run ./main.py server
 # 自定义地址和端口
-uv run python ./main.py server --host 127.0.0.1 --port 8888
+uv run ./main.py server --host 127.0.0.1 --port 8888
 ```
 
 文档: [MCP Server API 文档](mylib/mcp/README.md) (点击跳转)
 
-### 🤖 (3) 交互层: LLM Client --done-- (等待重构)
+### 🤖 (3) 交互层: LLM Client --done--
 
-LLM 客户端封装，支持多种模型提供商与工具调用 (目前测试使用 deepseek-chat)
+> LLM 客户端封装，支持多种模型提供商与工具调用 (目前测试使用 deepseek-chat)
 
 ##### 核心功能
 
-- **工具调用**: 自动集成 MCP Server 工具，支持 function calling
-- **连续调用**: 支持工具的多轮连续调用，直到 LLM 返回 `TOOL_CALL_END`
-- **对话管理**: 完整的对话上下文管理和历史记录
-- **双界面**: 终端交互式界面 + Streamlit Web UI
+- **统一接口**: 封装了 `LLMClient`，屏蔽了底层 API 差异
+- **Web UI**: 基于 Streamlit 的交互式界面 (`agent_web.py`)，是目前系统的主要入口
+- **工具集成**: 自动对接 MCP Server，支持 Function Calling
 
 ##### 使用方式
 
-**终端客户端**（交互式命令行）:
+**启动 Web 界面**:
 
 ```bash
-uv run python ./main.py client
+uv run ./main.py web
 ```
-
-**Web UI**（Streamlit 网页界面）:
-
-```bash
-uv run python ./main.py web
-```
-
-Web UI 特性:
-
-- 📱 左右分栏布局：左侧对话，右侧实时日志
-- 🎨 美观的消息气泡样式
-- 📊 可视化工具调用流程
-- 🔄 实时显示工具执行进度
-- 📚 侧边栏显示所有可用工具
-
-环境配置: 需要在 `mylib/llm/llm_config.toml` 填入 `DEEPSEEK_API_KEY` 和 MCP Server 地址
 
 ### ⚙️ (4) 配置层: Config --done--
 
@@ -127,61 +151,68 @@ Web UI 特性:
 
 文档 [UserGuide.md](mylib/config/docs/UserGuide.md) (点击跳转)
 
-### 🧠 (5) 智能体层: Agent --pedding--
+### 🧠 (5) 智能体层: Agent --done--
 
-定义了智能体的基类与核心行为模式。
+> **[毕设核心模块]** 多专家智能体协作系统的具体实现。
 
-##### 设计哲学
+本模块实现了基于 **RAG -> Planning -> Execution -> Summarization** 架构的四类专家智能体：
 
-> 自我认知是一切的起点
+1.  **RAGAgent (全知魔导书)**: 负责从数据库检索历史记忆，提供上下文支持。
+2.  **PlannerAgent (星盘占卜师)**: 负责将用户请求拆解为结构化的执行步骤 (JSON)。
+3.  **ExecutorAgent (魔力执行官)**: 负责调用 MCP 工具执行具体步骤，并反馈结果。
+4.  **SummaryAgent (傲娇魔女)**: 负责汇总所有信息，以特定人设生成最终回复。
 
-每个 Agent 都必须拥有三个核心要素：
+**📚 文档**: [Agent 详细设计文档](mylib/agent/agent.md) (点击跳转)
 
-1.  **身份 (Identity)**: 明确角色定位与能力边界
-2.  **目标 (Objectives)**: 当前任务目标与工作范围
-3.  **记忆 (Memory)**: 短期操作记录、长期经验积累与元认知反思
+### 🕹️ (6) 核心层: Core --done--
 
-**文档**
+> **[毕设演示模块]** 系统的核心枢纽与编排层。
 
-[Agent 设计文档](mylib/agent/agent.md) (点击跳转)
+目前主要由 `agent_web.py` 承载，它充当了 **Admin Agent** 的角色：
+- **流程编排**: 串联 RAG、Planner、Executor、Summary 四个阶段。
+- **状态管理**: 维护 Streamlit 的 Session State，管理对话历史。
+- **UI 呈现**: 提供可视化的多智能体协作界面。
 
-### 🕹️ (6) 核心层: Core --pedding--
+### 🌰 (7) 内核层: Kernel --new--
 
-系统的核心枢纽，负责多专家智能体的调度与协作管理。
+> 系统内核，定义了全局通用的基础类型。
 
-##### 核心职责 (Admin Agent)
+- **Lenum**: 统一的枚举定义 (如 `MemoryLogRole`, `TasksStatus`)。
+- **Ltypevar**: 通用泛型定义。
+- **Lerror**: (规划中) 统一错误处理系统。
 
-- **任务编排**: 接收用户输入，分解为可执行的子任务序列
-- **专家调度**: 根据任务需求自动生成 (Spawn) 或唤醒特定角色的专家 Agent
-- **生命周期管理**: 控制 Agent 的创建、运行与销毁
-- **消息路由**: 管理 Agent 之间以及 Agent 与 Admin 之间的通信协议
-- **结果收敛**: 汇总各专家的输出，生成最终响应
+### 🚀 (8) 新一代平台: LianAgent --dev--
 
-这是整个系统的"大脑"，实现了论文中提到的多专家协作架构。
+> `mylib/lian_agent/`
 
-### 🛠️ (7) 工具库: Kit (原 Utils)
+正在孵化中的下一代智能体平台，旨在提供更强的通用性和可扩展性，目前处于早期开发阶段。
+
+### 🛠️ (9) 工具库: Kit (原 Utils)
 
 > 包含了一系列自研的基础工具库，为上层模块提供支持。
 
+#### 🔍 向量检索
+- **Lfind**: 轻量级 Embedding 生成与检索工具。封装了向量化接口和相似度计算，是 RAGAgent 的核心依赖。
+    - [Lfind 使用文档](mylib/kit/Lfind/docs/Lfind.md) (点击跳转)
+
 #### 🎨 终端美化
-- **Printer**: 基础彩色打印工具。简单轻量，开箱即用，适合快速输出带颜色的调试信息或日志，无需复杂配置。
-- **Loutput**: 高级终端输出库，支持 ANSI/256色/真彩色 (RGB 24bit)，提供色彩降级兼容。内置了丰富的颜色映射表和样式处理器，能够自动检测终端色彩支持能力并进行适配，让终端界面开发像前端一样优雅。
+- **Printer**: 基础彩色打印工具。简单轻量，开箱即用。
+- **Loutput**: 高级终端输出库，支持 ANSI/256色/真彩色 (RGB 24bit)，提供色彩降级兼容。
     - [Loutput 使用文档](mylib/kit/Loutput/docs/Loutput.md) | [终端颜色指南](mylib/kit/Loutput/docs/ColorGuide.md) | [RGBColor 指南](mylib/kit/Loutput/docs/RGBColor.md)
 
 #### 🧩 算法与数据结构
-- **Lstack**: 封装的标准栈结构。提供了严谨的压栈、出栈接口，支持迭代器模式，是实现下推自动机和递归算法的基础容器。
+- **Lstack**: 封装的标准栈结构。
     - [Lstack 设计文档](mylib/kit/Lstack/docs/Lstack.md) (点击跳转)
-- **Lfsm**: 通用有限状态机 (Finite State Machine) 基类。通过继承方式定义状态与转换规则，逻辑清晰且易于维护，广泛应用于协议解析和流程控制场景。
+- **Lfsm**: 通用有限状态机 (Finite State Machine) 基类。
     - [Lfsm 设计文档](mylib/kit/Lfsm/docs/Lfsm.md) (点击跳转)
-- **Lpda**: 下推自动机 (Pushdown Automaton)，支持嵌套结构解析。结合了有限状态机与栈的特性，专门用于处理括号匹配、代码块解析等具有递归特性的语法结构。
+- **Lpda**: 下推自动机 (Pushdown Automaton)。
     - [Lpda 设计文档](mylib/kit/Lpda/docs/Lpda.md) (点击跳转)
 
 #### 📝 文本处理
-- **Ltokenizer**: 基于状态机的通用分词器基类。支持流式处理和位置追踪（行号/列号），能够高效地将原始文本转换为结构化的 Token 序列，为解析器提供标准输入。
+- **Ltokenizer**: 基于状态机的通用分词器基类。
     - [Ltokenizer 设计文档](mylib/kit/Ltokenizer/docs/Ltokenizer.md) (点击跳转)
-- **Lparser**: 基于 LPDA 的通用解析器基类，用于构建复杂的语法分析器。提供了灵活的解析钩子和上下文管理机制，开发者只需关注语法规则的定义，即可快速构建出功能强大的自定义语言解析器。
+- **Lparser**: 基于 LPDA 的通用解析器基类。
     - [Lparser 设计文档](mylib/kit/Lparser/docs/Lparser.md) (点击跳转)
-- **Lfind**: 向量嵌入 (Embedding) 工具封装，用于知识库检索。集成了主流的 Embedding 模型接口，提供了开箱即用的文本向量化和相似度匹配功能，是实现 RAG（检索增强生成）系统的核心组件。
 
 ---
 
@@ -216,7 +247,7 @@ uv run python tests/{TEST_FILE_NAME}
 | :------------------------------- | :------------------------------------------------------------------------------------------------ | :--------------------------------------------------- |
 | `config_loader.test.py`          | **配置加载测试**<br>测试配置文件的读取、解析和默认值处理。                                        | `uv run python tests/config_loader.test.py`          |
 | `lian_orm_schema_parser.test.py` | **SQL 解析器测试**<br>测试 SQL 文件解析功能，验证 Schema 提取的正确性。                           | `uv run python tests/lian_orm_schema_parser.test.py` |
-| `test_sql_complete.py`           | **ORM 完整功能测试**<br>包含 CRUD、关联查询、事务、批量操作等全功能测试，**也是最佳的使用教程**。 | `uv run python tests/test_sql_complete.py`           |
+| `lian_orm.test.py`               | **ORM 完整功能测试**<br>包含 CRUD、关联查询、事务、批量操作等全功能测试，**也是最佳的使用教程**。 | `uv run python tests/lian_orm.test.py`               |
 | `Loutput.test.py`                | **终端输出测试**<br>展示 Loutput 库的各种颜色、样式和特效输出能力。                               | `uv run python tests/Loutput.test.py`                |
 | `psql_connect.test.py`           | **数据库连接测试**<br>测试 PostgreSQL 数据库的连接状态，并列出所有公共表。                        | `uv run python tests/psql_connect.test.py`           |
 | `rgb_demo.py`                    | **RGB 颜色演示**<br>展示 RGBColor 和 ANSItoRGB 工具的高级色彩处理能力。                           | `uv run python tests/rgb_demo.py`                    |
@@ -235,3 +266,8 @@ uv run python tests/{TEST_FILE_NAME}
 
 - 整个项目的规模已经达到 48 个目录 144 个文件了...有时候我自己都记不清哪些文件是干嘛的
 - `lian_orm` 我是真喜欢, 但目前时间不够了...只能暂时留着等以后重构
+
+#### 📅 2025-12-18
+
+- 咳咳好久没写这个了, 补一条
+- 目前开发进度慢得很啊, 不过我们还是先做了一个`agent/`把毕设敷衍过去吧!
