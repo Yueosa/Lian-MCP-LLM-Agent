@@ -168,6 +168,11 @@ def get_custom_css():
             border-left: 3px solid var(--primary-color);
         }
 
+        /* Avatar Styling - Rounded Corners for User Avatar */
+        [data-testid="stChatMessage"] img {
+            border-radius: 12px !important;
+        }
+
         /* Assistant Message */
         [data-testid="stChatMessage"][data-testid="assistant"] {
             background-color: rgba(37, 37, 53, 0.6);
@@ -264,7 +269,7 @@ def get_avatar(agent_name: str) -> str:
     elif "Summary" in agent_name:
         return "🐱"
     elif "User" in agent_name:
-        return "👤"
+        return "./avatar.jpg"
     else:
         return "🐱" # 小恋
 
