@@ -1,319 +1,98 @@
-# Agent
+# Lian Agent System Documentation
 
 By Lian - 2025
 
 ---
 
-## 设计哲学
+## 1. 体系架构 (Architecture)
 
-> 自我认知是一切的起点
+本系统采用多智能体协作模式 (Multi-Agent System)，将复杂任务拆解为四个阶段，由不同的专家智能体协作完成：
 
-#### Agent 必须拥有的三样东西
-
-1. 身份 (Identity)
-
-   - 我是谁
-   - 我的角色和能力界限是什么
-
-2. 目标 (Objectives)
-
-   - 我此刻正试图完成什么任务
-   - 我的工作范围是什么
-
-3. 记忆 (Memory)
-
-   - 我刚做了什么 (短期)
-   - 我曾经做过什么 (长期)
-   - 我应该怎么做的更好 (元认识)
+1.  **Context Retrieval (RAG)**: 检索历史记忆，提供背景信息。
+2.  **Planning**: 将用户请求拆解为可执行的步骤。
+3.  **Execution**: 调用工具执行具体步骤，并反馈结果。
+4.  **Summarization**: 根据执行结果，使用特定人设（猫娘）生成最终回复。
 
 ---
 
-## LLMBaseAgent 基类
+## 2. 基类设计 (BaseAgent)
 
-> 设计一个基类, 让所有LLM实例都继承于他
+位于 `mylib/agent/base.py`，是所有智能体的父类。
 
-#### 类变量
+### 核心职责
+*   **LLM 通信**: 封装了异步的大模型 API 调用 (`_call_llm`)，包含重试机制。
+*   **配置管理**: 自动加载 `config/` 下的 LLM 配置。
+*   **数据库连接**: 初始化 `lian_orm` 连接，用于存取记忆和任务状态。
+*   **记忆管理**: 提供统一的 `save_memory` 接口，支持自动计算 Embedding。
 
-1. 大模型调用相关 (API模式)
-    - provider
-    - api_key
-    - api_url
-2. 请求协议 request_schema
-3. 响应协议 response_schema
-
-协议可以抽象为独立的类
-
-#### 实例变量
-
-详见 [LLMBaseAgent](./base.py)
-
-#### 实例方法
-
-##### `think`
-
-> 执行一次 LLM 调用, 加入自我认知, 返回结构化结果
-
-1. 将 identity_prompt 注入 system prompt
-2. 将 memory 加入 context
-3. 发送给模型
-4. 按 response_schema 校验
-5. 返回
-
-##### `receive`
-
-> 加入短期记忆
-
-```python
-def receive(self, message: dict) -> None:
-    self.memory.append(message)
-```
-
-##### `respond`
-
-```python
-def respond(self) -> dict:
-    return self.think(user_input=None)
-```
-
-#### 系统方法
-
-##### `tool_call`
-
-> MCP 工具调用
-
-```python
-def tool_call(self, args: dict) -> Dict:
-    pass
-```
-
-##### `spawn_agent`
-
-> 生成子代理
-
-```python
-def spawn_agent(self, role, desc, goals):
-    return Agentmanager.create_agent(...)
-```
-
-##### `memory`
-
-> 记忆系统
-
-```python
-def save_memory(self, text: str) -> Dict:
-def retrieve_memory(self, query: str):
-```
-
-##### `log`
-
-> 日志能力
-
-```python
-def log(self, event):
-    pass
-```
-
-#### 权限系统
-
-> 让子类继承不同能力, 清晰职责边界
-
-```python
-class LLMBaseAgent:
-    capabilities = {
-        "spawn": False,
-        "tool_call": False,
-        "memory_write": False,
-    }
-```
+### 关键方法
+*   `a_chat(message, history, memory_type)`: 智能体的主入口，处理用户消息并返回回复。
+*   `save_memory(role, content, memory_type)`: 将对话或思考结果持久化到 `memory_log` 表。
+*   `_construct_context(message, history)`: 构建发送给 LLM 的消息列表 (System Prompt + History + User Input)。
 
 ---
 
-## 自我认知
+## 3. 专家智能体 (Specialized Agents)
 
-> 目前打算通过 **实例级prompt** 实现
+### 3.1 全知魔导书 (RAGAgent)
+*   **文件**: `mylib/agent/rag_agent.py`
+*   **职责**: 记忆检索与上下文总结。
+*   **工作流**:
+    1.  **关键词提取**: 使用 LLM 从用户请求中提取搜索关键词。
+    2.  **向量检索**: 计算关键词 Embedding，在 `memory_log` 中检索 Top-K (默认 15) 条相关记录。
+    3.  **排序优化**: 优先展示 `summary` 类型的记忆，其次按相似度排序。
+    4.  **总结生成**: 结合当前时间 (`datetime.now()`) 和检索到的记忆，生成对当前任务有帮助的背景摘要。
 
-在每次 `think` 时注入认知:
+### 3.2 星盘占卜师 (PlannerAgent)
+*   **文件**: `mylib/agent/planner_agent.py`
+*   **职责**: 任务规划与拆解。
+*   **输出格式**: 严格的 JSON 格式，包含 `steps` 数组。
+*   **数据库交互**:
+    *   创建 `Task` 记录 (状态: PENDING)。
+    *   创建多个 `TaskStep` 记录 (状态: PENDING)，供 Executor 执行。
+*   **记忆类型**: `MemoryLogMemoryType.PLAN`。
 
-```text
-[
-  {"role": "system", "content": "<IDENTITY_PROMPT>"},
-  {"role": "system", "content": "<GLOBAL_RULES_OR_SCHEMA>"},
-  {"role": "assistant", "content": "<RETRIEVED_SUMMARY_FROM_LONG_TERM_MEMORY>"},
-  {"role": "user", "content": "<RECENT_USER_INPUT>"},
-  {"role": "user", "content": "<ADDITIONAL_TASK_METADATA_IF_ANY>"}
-]
-```
+### 3.3 魔力执行官 (ExecutorAgent)
+*   **文件**: `mylib/agent/executor_agent.py`
+*   **职责**: 任务执行与工具调用。
+*   **特性**:
+    *   **工具循环**: 支持多轮工具调用 (`TOOL_CALL` -> `TOOL_CALL_END`)。
+    *   **状态更新**: 将 `TaskStep` 状态更新为 `RUNNING` -> `DONE` / `FAILED`。
+    *   **结果截断**: 防止工具返回过长数据导致 Context 溢出。
+    *   **审计**: 记录所有的 `ToolCall` 到数据库。
 
-#### 伪代码 (构建思路)
+### 3.4 傲娇魔女 (SummaryAgent)
+*   **文件**: `mylib/agent/summary_agent.py`
+*   **职责**: 最终回复生成与人设扮演。
+*   **人设**: "小恋" (傲娇白猫魔女)。
+*   **输入**: 用户请求 + RAG 背景 + Planner 计划 + Executor 结果。
+*   **输出**: 带有情感色彩的最终总结。
+*   **记忆类型**: `MemoryLogMemoryType.SUMMARY`。
 
-```python
-def build_identity_prompt(agent):
-    # agent.role, agent.description, agent.goals, agent.agent_id
-    return (
-        f"你是 {agent.role}（ID: {agent.agent_id}）。\n"
-        f"自我介绍：{agent.description}\n"
-        f"当前目标：{', '.join(agent.goals)}\n"
-        "行为约束：\n"
-        "- 只在你的权限范围内行动；\n"
-        "- 若需要调用外部工具，请以 request_tool 格式返回；\n"
-        "- 输出必须符合 response_schema。\n"
-    )
+---
 
-def build_messages(agent, user_input, retrieved_memory_summary=None, recent_msgs=None):
-    messages = []
-    # 1. 固定身份（system）
-    messages.append({"role": "system", "content": build_identity_prompt(agent)})
+## 4. 数据流与记忆 (Data Flow & Memory)
 
-    # 2. 添加全局行为规范 / 输出 schema（可选但强烈建议）
-    messages.append({
-        "role": "system",
-        "content": "输出须为 JSON，符合 AgentResponse schema: {agent_id, message, proposed_action, metadata}。"
-    })
+### 4.1 记忆模型 (MemoryLog)
+系统使用 `memory_log` 表存储所有交互历史，字段包括：
+*   `role`: `MemoryLogRole` (USER, ASSISTANT, SYSTEM, TOOL)
+*   `content`: 文本内容
+*   `embedding`: 向量数据 (用于检索)
+*   `memory_type`: `MemoryLogMemoryType` (CONVERSATION, SUMMARY, PLAN, REFLECTION)
 
-    # 3. 注入检索到的长期记忆摘要（简短）
-    if retrieved_memory_summary:
-        messages.append({"role": "assistant", "content": f"相关记忆摘要：{retrieved_memory_summary}"})
+### 4.2 任务追踪 (Task System)
+*   **Task**: 代表一次完整的用户请求。
+*   **TaskStep**: 代表计划中的一个具体步骤。
+*   **ToolCall**: 记录步骤执行过程中的工具调用详情。
 
-    # 4. 最近对话（短期记忆）
-    if recent_msgs:
-        for m in recent_msgs:
-            messages.append(m)   # m 为 {"role":"user"/"assistant","content":...}
+---
 
-    # 5. 当前用户输入
-    messages.append({"role": "user", "content": user_input})
+## 5. 交互流程示例
 
-    return messages
-
-def call_llm_api(messages):
-    payload = {"messages": messages, "max_tokens": 800}
-    # 伪函数，替换为你实际的 HTTP 调用
-    return remote_chat_api_call(payload)
-
-# 使用示例（放在 LLMBaseAgent.think 中）
-retrieved_summary = vector_db.search_and_summarize(agent.goals, top_k=5)
-recent = agent.memory[-6:]   # 保留最近 6 条短期记忆
-messages = build_messages(agent, "请实现一个分页的 SQL 查询模块", retrieved_summary, recent)
-resp = call_llm_api(messages)
-```
-
-#### 长期记忆的注入与检索策略
-
-**1. 向量检索 + 摘要注入 (RAG)**
-- 对 `memory_log` 做 **embeddings**
-- 查询时使用 **query embedding** 找 **Top-K** 相关记忆
-- 将 **Top-K** 注入提示词 (难点)
-
-**2. 层级摘要**
-- 把长期历史做分段摘要, 检索时先取摘要, 在需要则取细节
-- 保留 "最近摘要缓存" 减少检索开销
-
-**3. 情境相关性评分**
-- 根据当前任务, 给记忆打分, 只注入得分超过阈值的记忆
-
-**4. 元记忆**
-- 维护 "代理能力/知识点索引"
-- capabilities（可加）
-- limitations（可加）
-
-#### 防止 token 爆炸 (目前调用模型的上限大概是 `131072 tokens`)
-
-- 只注入摘要与关键事实，不注入冗长日志。
-
-- 近期对话保留较多，历史对话用摘要。
-
-- 动态窗口：当任务重要性高时，允许更大窗口；平时保持紧凑。
-
-- 持续压缩（rolling summary）：把最近 N 条对话每隔一段合成一条短摘要，替换原来的多条对话。
-
-- 把可执行数据放在外部工具（比如大型表格/日志），只注入工具调用说明与结果摘要，模型通过 MCP 去获取全量数据。
-
-#### Tips
-
-##### 基类能力
-
-1、Memory 模块
-
-向量数据库
-层级摘要
-相关性评分
-检索与注入
-
-2、Context Builder 模块（LLMBaseAgent 核心）
-
-identity prompt 注入
-schema 注入
-摘要注入
-recent messages 注入
-token 剪枝
-上下文合成
-
-3、Response Validator 模块
-
-JSON schema validation
-纠错调用
-
-4、Policy/Execution 模块
-
-spawn_agents (管理员专用)
-call_tools
-保存 memory_log
-
-##### 问题二：动态裁剪 token 可写成基类公共方法？
-
-完全可以，而且应该这样做。
-
-LLMBaseAgent 负责：
-
-保持一个提示词 buffer
-
-估算每条消息 token 数
-
-当 buffer > max_token 时启动裁剪策略
-
-裁剪策略有三种常见选项：
-
-删除最旧的对话（简单）
-
-摘要对话（RAG风格）
-
-保留最相关的对话（向量检索）
-
-##### 调用模式
-
-(1) 普通模式
-
-单 Agent，只有 request → response。
-不调用工具，没有复杂逻辑。
-
-(2) 智能体模式
-
-Agent 拥有：
-
-call_tool
-
-任务拆解能力
-
-生成 structured output
-
-这类 agent 类似于：
-“你的本地小工作机器人”
-
-(3) 多专家模式（你的毕业设计核心）
-
-用户 → 管理员LLM → 一堆专家子LLM
-这是一个分布式自治系统。
-
-你提出的：
-
-虚拟局域网
-
-广播池
-
-vlan 小组
-
-基于角色的共享 vs 隔离数据
-
-这些概念都可以做成 逻辑层而非网络层模拟，完全没问题，而且非常前沿（像 OpenAI Swarm、Microsoft AutoGen 的理念）。
-
-##### 多专家模式
-
+1.  **用户输入**: "帮我查询 Python 3.13 的新特性并总结"
+2.  **RAG**: 检索是否有关于 Python 3.13 的过往记忆，生成背景摘要。
+3.  **Planner**: 生成计划 -> `[Step 1: Search Python 3.13 features, Step 2: Summarize]`。
+4.  **Executor**:
+    *   执行 Step 1: 调用搜索工具，获取结果。
+    *   执行 Step 2: 调用总结工具 (或直接由 LLM 总结)。
+5.  **Summary**: 结合所有信息，用猫娘语气回复: "哼，虽然很麻烦，但还是帮你查到了..."
