@@ -4,8 +4,7 @@
 
 By - Lian - 2025
 
-[![DeepWiki](https://img.shields.io/badge/DeepWiki-Project%20Docs-blueviolet?logo=bookstack&logoColor=white)](https://deepwiki.com/Yueosa/Lian-MCP-LLM-Agent)
-
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-喵咪百科%20Docs-blueviolet?logo=bookstack&logoColor=white)](https://deepwiki.com/Yueosa/Lian-MCP-LLM-Agent)
 
 ---
 
