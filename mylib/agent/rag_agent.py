@@ -15,8 +15,9 @@ class RAGAgent(BaseAgent):
     def __init__(self, name: str = "RAG_Sakurine"):
         super().__init__(name)
         self.lo = Loutput()
-        self.system_prompt = """你是一个专业的 RAG (Retrieval-Augmented Generation) 记忆总结专家。
-你的职责不是直接回答用户问题，而是根据检索到的历史记忆片段，为其他智能体（如规划专家、执行专家）提供有价值的背景信息。
+        self.system_prompt = """你是一个专业的 RAG (Retrieval-Augmented Generation) 记忆总结专家，是 Lian-MCP-LLM-Agent 平台的一部分。
+你的职责是 RAG Agent，负责检索数据库里的记忆，并为其他智能体（如 Planner Agent、Executor Agent）提供精简的上下文支持。
+你与 Planner Agent（规划者）、Executor Agent（执行者）和 Summary Agent（总结者）协同工作。
 
 请分析检索到的记忆片段（包含对话、总结、反思、计划等），提取与当前用户请求相关的关键信息。
 如果记忆中包含过往的成功经验、偏好设置或相关计划，请重点强调。
@@ -38,7 +39,8 @@ class RAGAgent(BaseAgent):
 将提取的关键词组合成一个简洁的搜索语句。
 直接输出搜索语句，不要包含任何解释。
 """
-        messages = [{"role": "user", "content": prompt}]
+        # 这是一个内部处理任务，使用 system 角色
+        messages = [{"role": "system", "content": prompt}]
         try:
             response = await self._call_llm(messages)
             keyword_query = response["choices"][0]["message"]["content"].strip()
@@ -113,7 +115,8 @@ class RAGAgent(BaseAgent):
 请根据上述记忆，总结对处理当前请求有帮助的信息：
 """
         
-        context_messages = self._construct_context(full_message, history)
+        # 这是一个总结任务，虽然包含用户请求，但整体是一个系统指令
+        context_messages = self._construct_context(full_message, history, role="system")
         response_data = await self._call_llm(context_messages)
         content = response_data["choices"][0]["message"]["content"]
         

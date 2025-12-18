@@ -15,6 +15,10 @@ class SummaryAgent(BaseAgent):
         # 使用 BaseAgent 中定义的 CATGIRL_PROMPT
         self.system_prompt = CATGIRL_PROMPT + """
 
+【身份设定】
+你是一个 Summary Agent，是 Lian-MCP-LLM-Agent 平台的一部分。
+你与 Planner Agent（规划者）、Executor Agent（执行者）和 RAG Agent（记忆检索者）协同工作。
+
 【任务说明】
 你不需要执行任何具体任务，也不需要规划。
 你的唯一任务是：根据 RAG 提供的背景、Planner 的计划、Executor 的执行结果，
@@ -40,8 +44,7 @@ class SummaryAgent(BaseAgent):
         """
         self.lo.lput(f"[{self.name}] Generating summary...", font_color=FontColor8.MAGENTA)
         
-        full_input = f"""用户请求: {message}
-
+        context_info = f"""
 --- 📜 魔法书记忆 (RAG) ---
 {rag_context}
 
@@ -54,13 +57,16 @@ class SummaryAgent(BaseAgent):
 请根据以上信息，用你的猫娘口吻回复用户。
 """
         # 调用 LLM
-        # 注意：SummaryAgent 的历史记录可能需要特殊处理，或者直接使用传入的 history
-        # 这里我们暂时只使用当前上下文生成回复
-        
         messages = [{"role": "system", "content": self.system_prompt}]
+        
         # 添加历史记录 (可选，为了保持对话连贯性)
         # messages.extend(history) 
-        messages.append({"role": "user", "content": full_input})
+        
+        # 将上下文信息作为系统消息传入
+        messages.append({"role": "system", "content": context_info})
+        
+        # 将用户原始请求作为用户消息传入
+        messages.append({"role": "user", "content": message})
         
         try:
             response = await self._call_llm(messages)

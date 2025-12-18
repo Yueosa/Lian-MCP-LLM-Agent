@@ -122,12 +122,12 @@ class BaseAgent:
                         print(f"[{self.name}] LLM Call Error after {max_retries} attempts: {e}")
                         return {"choices": [{"message": {"content": f"Error: {str(e)}"}}]}
 
-    async def a_chat(self, message: str, history: List[Dict], memory_type: MemoryLogMemoryType = MemoryLogMemoryType.CONVERSATION) -> str:
+    async def a_chat(self, message: str, history: List[Dict], memory_type: MemoryLogMemoryType = MemoryLogMemoryType.CONVERSATION, role: str = "user") -> str:
         """
         处理用户消息的主入口，子类应重写此方法或 _construct_context
         """
         # 1. 构建上下文
-        context_messages = self._construct_context(message, history)
+        context_messages = self._construct_context(message, history, role=role)
         
         # 2. 调用 LLM
         response_data = await self._call_llm(context_messages)
@@ -136,12 +136,15 @@ class BaseAgent:
         content = response_data["choices"][0]["message"]["content"]
         
         # 4. 保存记忆 (可选)
+        # 注意：这里保存的 role 仍然是 USER，因为这是"对话记录"的语义，
+        # 即使在 LLM 上下文中我们将其标记为 system 以便区分指令。
+        # 如果需要严格区分，可以传入 memory_role 参数。
         self.save_memory(MemoryLogRole.USER, message)
         self.save_memory(MemoryLogRole.ASSISTANT, content, memory_type=memory_type)
         
         return content
 
-    def _construct_context(self, message: str, history: List[Dict]) -> List[Dict]:
+    def _construct_context(self, message: str, history: List[Dict], role: str = "user") -> List[Dict]:
         """构建发送给 LLM 的消息列表"""
         messages = []
         # 添加系统提示词
@@ -153,7 +156,7 @@ class BaseAgent:
             messages.append(msg)
             
         # 添加当前消息
-        messages.append({"role": "user", "content": message})
+        messages.append({"role": role, "content": message})
         return messages
 
     def save_memory(self, role: MemoryLogRole, content: str, memory_type: MemoryLogMemoryType = MemoryLogMemoryType.CONVERSATION):

@@ -21,7 +21,9 @@ class ExecutorAgent(BaseAgent):
 
     def _build_system_prompt(self) -> str:
         tools_json = json.dumps(self.tools, indent=2, ensure_ascii=False)
-        return f"""你是一个强大的执行助手，可以调用各种工具来完成任务。
+        return f"""你是一个强大的执行助手，是 Lian-MCP-LLM-Agent 平台的一部分。
+你的职责是 Executor Agent，负责执行 Planner Agent 规划的具体指令，并可以调用各种工具来完成任务。
+你与 Planner Agent（规划者）、RAG Agent（记忆检索者）和 Summary Agent（总结者）协同工作。
 
 可用工具:
 {tools_json}
@@ -78,7 +80,8 @@ TOOL_CALL_END
                 self.lo.lput(f"[{self.name}] Failed to update step status: {e}", font_color="red")
 
         current_history = history.copy()
-        context = self._construct_context(message, current_history)
+        # Executor 接收的是系统下发的指令，而非用户直接对话，因此 role 设为 system
+        context = self._construct_context(message, current_history, role="system")
         
         final_answer = "Error: Maximum tool call rounds reached."
         
@@ -150,7 +153,8 @@ TOOL_CALL_END
                         })
                     
                     result_msg = f"Tool Results: {json.dumps(tool_results, ensure_ascii=False)}"
-                    context.append({"role": "user", "content": result_msg})
+                    # 工具执行结果，role 设为 tool
+                    context.append({"role": "tool", "content": result_msg})
                     continue
                     
                 except Exception as e:

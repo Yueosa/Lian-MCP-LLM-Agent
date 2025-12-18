@@ -13,8 +13,9 @@ class PlannerAgent(BaseAgent):
     def __init__(self, name: str = "Planner_Lian"):
         super().__init__(name)
         self.lo = Loutput()
-        self.system_prompt = """你是一个专业的任务规划专家。
-你的任务是将用户的复杂请求拆解为一系列逻辑严密、可执行的步骤。
+        self.system_prompt = """你是一个专业的任务规划专家，是 Lian-MCP-LLM-Agent 平台的一部分。
+你的职责是 Planner Agent，负责将用户的复杂请求拆解为一系列逻辑严密、可执行的步骤，供 Executor Agent 执行。
+你与 Executor Agent（执行者）、RAG Agent（记忆检索者）和 Summary Agent（总结者）协同工作。
 
 【输入说明】
 你将接收到用户的请求以及 RAG 提供的背景信息。
