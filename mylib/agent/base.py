@@ -1,6 +1,6 @@
 import httpx
 import asyncio
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from datetime import datetime
 
 from mylib.config import ConfigLoader
@@ -8,6 +8,13 @@ from mylib.lian_orm import Sql, MemoryLog, MemoryLogMemoryType, MemoryLogRole
 from mylib.kit.Lfind.embedding import get_embedding
 from mylib.kit.Loutput import Loutput
 from mylib.kernel.Lenum import LLMContextType
+from mylib.kernel.Lenum.agent import AgentState, AgentTransition, CallbackAction
+
+# FSM, Logger, Callback imports
+from mylib.agent.fsm import AgentFSM, fsm_manager
+from mylib.agent.logger import AgentLogger, LogLevel, logger_manager
+from mylib.agent.callback import CallbackManager, CallbackRequest, CallbackResponse, CallbackBuilder, callback_manager
+from mylib.agent.backup import ContextBackup, context_backup
 
 
 CATGIRL_PROMPT = """
@@ -45,6 +52,8 @@ class BaseAgent:
     """
     智能体基类
     提供 LLM 通信、记忆管理、配置加载等基础能力
+    
+    集成 FSM 状态机、Logger、Callback 回调机制
     """
     cfg = ConfigLoader(config_path="./config").LLM_CONFIG
     api_key = cfg.DEEPSEEK_API_KEY
@@ -52,8 +61,9 @@ class BaseAgent:
     model = cfg.MODEL
     timeout = cfg.TIMEOUT
 
-    def __init__(self, name: str, config: Optional[ConfigLoader] = None):
+    def __init__(self, name: str, config: Optional[ConfigLoader] = None, session_id: str = None):
         self.name = name
+        self.session_id = session_id or f"sess_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.lo = Loutput()
         if config:
             self.config = config
@@ -75,6 +85,87 @@ class BaseAgent:
         # 数据库连接
         self.sql: Optional[Sql] = None
         self._init_db()
+        
+        # === 新增：FSM、Logger、Callback 集成 ===
+        self._init_fsm()
+        self._init_logger()
+        self._init_callback()
+        
+    def _init_fsm(self):
+        """初始化状态机"""
+        self.fsm = AgentFSM(self.name)
+        fsm_manager.register(self.name, self.fsm)
+        self.fsm.on_transition(self._on_state_change)
+        
+    def _init_logger(self):
+        """初始化日志器"""
+        self.logger = AgentLogger(self.name)
+        logger_manager.register(self.name, self.logger)
+        self.logger.system("INIT", f"Agent initialized: {self.name}")
+        
+    def _init_callback(self):
+        """初始化回调处理"""
+        callback_manager.register_handler(self.name, self._handle_callback)
+        
+    async def _handle_callback(self, request: CallbackRequest) -> CallbackResponse:
+        """
+        处理回调请求 - 子类可重写
+        """
+        self.logger.agent("CALLBACK_RECEIVED", f"Received callback from {request.source_agent}: {request.action.value}")
+        return CallbackResponse(
+            request_id=request.request_id,
+            status="ACCEPTED",
+            source_agent=self.name,
+            message="Default handler - no action taken"
+        )
+        
+    def _on_state_change(self, old_state: AgentState, new_state: AgentState, event: AgentTransition):
+        """状态变化回调 - 记录可读的状态名称并同步到 StateStore"""
+        self.logger.state_change(old_state.name, new_state.name, event.name)
+        
+        # 同步状态到 StateStore 供 Monitor 页面实时读取
+        try:
+            from mylib.agent.state_store import state_store
+            state_store.update_agent_state(self.name, new_state.name, event.name)
+        except Exception as e:
+            # 静默失败，不影响主流程
+            pass
+        
+    async def send_callback(
+        self, 
+        target_agent: str, 
+        action: CallbackAction, 
+        reason: str, 
+        context: Dict = None
+    ) -> CallbackResponse:
+        """
+        发送回调请求到其他 Agent
+        """
+        request = CallbackBuilder() \
+            .from_agent(self.name) \
+            .to_agent(target_agent) \
+            .action(action) \
+            .reason(reason) \
+            .context(**(context or {})) \
+            .build()
+        return await callback_manager.send_callback(request)
+        
+    def backup_context(self, context: Dict, backup_type: str = "context"):
+        """备份上下文"""
+        context_backup.save_context(
+            self.session_id,
+            self.name,
+            context,
+            backup_type=backup_type
+        )
+        
+    def restore_context(self, backup_type: str = None) -> Optional[Dict]:
+        """恢复最新上下文"""
+        return context_backup.load_latest_context(
+            self.session_id,
+            self.name,
+            backup_type=backup_type
+        )
 
     def _init_db(self):
         """初始化数据库连接"""
@@ -86,8 +177,14 @@ class BaseAgent:
 
     async def _call_llm(self, messages: List[Dict], tools: Optional[List[Dict]] = None, temperature: float = 0.7) -> Dict:
         """
-        异步调用 LLM API (带重试机制)
+        异步调用 LLM API (带重试机制、状态管理、日志记录)
         """
+        # === FSM: 转换到 CALLING_LLM 状态 ===
+        self.fsm.transition(AgentTransition.LLM_CALL)
+        
+        # === Logger: 记录 LLM 请求 ===
+        self.logger.llm_request(messages)
+        
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
@@ -112,8 +209,20 @@ class BaseAgent:
                         json=payload
                     )
                     response.raise_for_status()
-                    return response.json()
+                    result = response.json()
+                    
+                    # === FSM: 成功 -> PROCESSING ===
+                    self.fsm.transition(AgentTransition.LLM_DONE)
+                    
+                    # === Logger: 记录响应 ===
+                    content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    self.logger.llm_response(content)
+                    
+                    return result
+                    
                 except Exception as e:
+                    self.logger.system("LLM_ERROR", f"LLM call failed (attempt {attempt+1}/{max_retries}): {e}")
+                    
                     if attempt < max_retries - 1:
                         print(f"[{self.name}] LLM Call failed (Attempt {attempt+1}/{max_retries}): {e}. Retrying in {retry_delay}s...")
                         if "400" in str(e):
@@ -131,26 +240,125 @@ class BaseAgent:
                         await asyncio.sleep(retry_delay)
                         retry_delay *= 2
                     else:
+                        # === FSM: 失败 -> ERROR ===
+                        self.fsm.transition(AgentTransition.ERROR)
+                        self.logger.system("LLM_FATAL", f"LLM call failed after {max_retries} attempts: {e}")
                         print(f"[{self.name}] LLM Call Error after {max_retries} attempts: {e}")
                         return {"choices": [{"message": {"content": f"Error: {str(e)}"}}]}
 
     async def a_chat(self, message: str, history: List[Dict], memory_type: MemoryLogMemoryType = MemoryLogMemoryType.CONVERSATION, role: str = "user") -> str:
         """
-        处理用户消息的主入口，子类应重写此方法或 _construct_context
+        处理用户消息的主入口，子类应重写 _process_message 而不是此方法
+        
+        生命周期：
+        IDLE → (START) → PROCESSING → ... → (COMPLETE) → IDLE
         """
+        return await self._execute_with_lifecycle(
+            self._default_process,
+            message, history, memory_type, role
+        )
+    
+    async def _execute_with_lifecycle(self, process_func, *args, **kwargs) -> str:
+        """
+        带生命周期管理的执行包装器
+        
+        子类的 a_chat 可以调用此方法来确保正确的 FSM 状态管理
+        """
+        try:
+            # === FSM: 开始处理 ===
+            self._start_task()
+            
+            # 执行实际处理逻辑
+            result = await process_func(*args, **kwargs)
+            
+            # === FSM: 任务完成，回到 IDLE ===
+            self._complete_task()
+            
+            return result
+            
+        except Exception as e:
+            # === FSM: 错误处理 ===
+            try:
+                self.fsm.transition(AgentTransition.ERROR)
+            except:
+                pass
+            self.logger.system("TASK_ERROR", f"Task failed: {e}")
+            
+            # 更新统计数据
+            try:
+                from mylib.agent.state_store import state_store
+                state_store.increment_stat("failed", 1)
+            except:
+                pass
+            
+            # 尝试重置到 IDLE，让 Agent 可以继续工作
+            try:
+                self.fsm.transition(AgentTransition.RESET)
+            except:
+                pass
+            raise
+    
+    def _start_task(self):
+        """
+        开始任务，初始化 FSM 状态
+        
+        状态流转: IDLE → INITIALIZING → PROCESSING
+        """
+        try:
+            if self.fsm.is_idle:
+                self.fsm.transition(AgentTransition.START)
+                self.fsm.transition(AgentTransition.INIT_COMPLETE)
+                self.logger.system("TASK_START", f"Agent {self.name} started task")
+                
+                # 更新统计数据
+                try:
+                    from mylib.agent.state_store import state_store
+                    state_store.increment_stat("total_tasks", 1)
+                except:
+                    pass
+                    
+        except Exception as e:
+            self.logger.debug("FSM_WARN", f"Start transition warning: {e}")
+    
+    def _complete_task(self):
+        """
+        完成当前任务，重置 FSM 状态
+        
+        状态流转: PROCESSING → COMPLETED → IDLE
+        """
+        try:
+            # 从 PROCESSING 转到 COMPLETED
+            if self.fsm.state == AgentState.PROCESSING:
+                self.fsm.transition(AgentTransition.COMPLETE)
+            
+            # 从 COMPLETED 重置到 IDLE（准备下一轮）
+            if self.fsm.state == AgentState.COMPLETED:
+                self.fsm.transition(AgentTransition.RESET)
+                
+            self.logger.system("TASK_DONE", f"Agent {self.name} completed, back to IDLE")
+            
+            # 更新统计数据
+            try:
+                from mylib.agent.state_store import state_store
+                state_store.increment_stat("completed", 1)
+            except:
+                pass
+                
+        except Exception as e:
+            self.logger.debug("FSM_WARN", f"Complete transition warning: {e}")
+    
+    async def _default_process(self, message: str, history: List[Dict], memory_type: MemoryLogMemoryType, role: str) -> str:
+        """默认处理逻辑（简单的 LLM 调用）"""
         # 1. 构建上下文
         context_messages = self._construct_context(message, history, role=role)
         
-        # 2. 调用 LLM
+        # 2. 调用 LLM (内部会管理 LLM_CALL → WAITING_LLM → LLM_DONE → PROCESSING)
         response_data = await self._call_llm(context_messages)
         
         # 3. 解析结果
         content = response_data["choices"][0]["message"]["content"]
         
-        # 4. 保存记忆 (可选)
-        # 注意：这里保存的 role 仍然是 USER，因为这是"对话记录"的语义，
-        # 即使在 LLM 上下文中我们将其标记为 system 以便区分指令。
-        # 如果需要严格区分，可以传入 memory_role 参数。
+        # 4. 保存记忆
         self.save_memory(MemoryLogRole.USER, message)
         self.save_memory(MemoryLogRole.ASSISTANT, content, memory_type=memory_type)
         

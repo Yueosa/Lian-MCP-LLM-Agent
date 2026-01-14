@@ -2,13 +2,14 @@ import json
 import asyncio
 from typing import List, Dict, Any, Optional
 from .base import BaseAgent
+from .prompts import build_executor_prompt
 from mylib.lian_orm.models import ToolCall, ToolCallsStatus, TaskStepsStatus, MemoryLogRole, MemoryLogMemoryType
 from mylib.kit.Loutput import Loutput, FontColor8
 
 
 class ExecutorAgent(BaseAgent):
     """
-    执行体专家
+    执行体专家 (魔力执行官)
     负责执行具体指令，可以调用工具
     """
     
@@ -16,54 +17,9 @@ class ExecutorAgent(BaseAgent):
         super().__init__(name)
         self.lo = Loutput()
         self.tools = tools or []
-        self.system_prompt = self._build_system_prompt()
+        # 使用新的增强提示词构建器
+        self.system_prompt = build_executor_prompt(self.tools)
         self.max_rounds = 100
-
-    def _build_system_prompt(self) -> str:
-        tools_json = json.dumps(self.tools, indent=2, ensure_ascii=False)
-        return f"""你是一个强大的执行助手，是 Lian-MCP-LLM-Agent 平台的一部分。
-你的职责是 Executor Agent，负责执行 Planner Agent 规划的具体指令，并可以调用各种工具来完成任务。
-你与 Planner Agent（规划者）、RAG Agent（记忆检索者）和 Summary Agent（总结者）协同工作。
-
-可用工具:
-{tools_json}
-
-工具调用规则:
-1. 当需要调用工具时，请按照以下格式响应：
-TOOL_CALL: {{
-    "tool_calls": [
-        {{
-            "name": "tool_name",
-            "arguments": {{
-                "param1": "value1",
-                "param2": "value2"
-            }}
-        }}
-    ]
-}}
-
-2. 你可以连续多次调用工具来完成复杂任务
-3. 每次工具调用后，我会返回结果给你，你可以基于结果决定：
-    - 继续调用其他工具（返回新的 TOOL_CALL）
-    - 已获得足够信息，给出最终答案（返回 TOOL_CALL_END）
-
-4. 当你认为已经收集到足够信息可以回答用户问题时，必须在回复开头添加标记：
-TOOL_CALL_END
-
-然后给出你的最终答案。
-
-重要限制：
-1. 你的回答必须非常简练、客观。
-2. 不要输出任何闲聊、问候或解释性文字，除非是最终答案的一部分。
-3. **最终答案要求**: 当你完成所有工具调用后，请对执行结果进行一个"小总结" (Small Summary)。
-    - 提炼关键数据和结果。
-    - 格式清晰，便于后续的 SummaryAgent 读取。
-    - 不要包含"我已完成任务"之类的废话，直接给结果。
-4. 严禁询问用户问题。
-5. **工具使用建议**: 
-    - 如果需要从网页获取信息，优先使用支持提取特定元素或标签的工具（如 `web_extract_elements`），而不是直接抓取整个页面。
-    - 避免一次性请求大量数据，防止上下文溢出。
-"""
 
     async def a_chat(self, message: str, history: List[Dict], tool_handler: Optional[callable] = None, task_id: int = None, step_id: int = None) -> str:
         """
@@ -72,6 +28,12 @@ TOOL_CALL_END
         :param task_id: 关联的任务ID
         :param step_id: 关联的步骤ID
         """
+        return await self._execute_with_lifecycle(
+            self._executor_process, message, history, tool_handler, task_id, step_id
+        )
+    
+    async def _executor_process(self, message: str, history: List[Dict], tool_handler: Optional[callable] = None, task_id: int = None, step_id: int = None) -> str:
+        """执行器核心处理逻辑"""
         # 更新步骤状态为运行中
         if step_id and self.sql and self.sql.task_steps:
             try:
@@ -83,7 +45,9 @@ TOOL_CALL_END
         if not message or not message.strip():
             message = "Please execute the current step."
         
-        current_history = history.copy()
+        # 【修复】Executor 不使用对话历史，避免被其他 Agent 的人设污染
+        # Executor 只负责执行具体任务和调用工具，应保持客观中立
+        current_history = []
         # Executor 接收的是系统下发的指令，虽然是系统指令，但为了符合 API 规范（避免多个 system 消息），这里 role 设为 user
         context = self._construct_context(message, current_history, role="user")
         

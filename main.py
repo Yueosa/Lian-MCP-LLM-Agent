@@ -11,10 +11,11 @@ def main():
     parser.add_argument(
         "mode",
         choices=[
-            "server",  # MCP server
-            "client",  # 旧版交互式 LLM 客户端
-            "web",     # 旧版 MCP Web UI
-            "agent",   # 新版 Multi-Agent Web UI
+            "server",   # MCP server
+            "client",   # 旧版交互式 LLM 客户端
+            "web",      # 旧版 MCP Web UI
+            "agent",    # 新版 Multi-Agent Web UI
+            "monitor",  # Agent 监控页面
         ],
         help="运行模式",
     )
@@ -41,6 +42,13 @@ def main():
         agent_web_path = Path(__file__).parent / "mylib" / "core" / "agent_web.py"
         print(f"🚀 启动新版 Multi-Agent Web UI: {agent_web_path}")
         subprocess.run([sys.executable, "-m", "streamlit", "run", str(agent_web_path)])
+        
+    elif args.mode == "monitor":
+        # 使用 FastAPI + HTML 监控页面，替代 Streamlit
+        from mylib.agent.monitor_api import run_monitor_server
+        host = args.host or "0.0.0.0"
+        port = args.port or 8502
+        run_monitor_server(host=host, port=port)
         
     else:
         raise SystemExit(f"未知模式: {args.mode}")

@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Monitor - 多智能体监控面板</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* 深色主题（默认） */
+        :root {
+            --primary: #7dd3fc;
+            --primary-dark: #0ea5e9;
+            --primary-light: #bae6fd;
+            --secondary: #f0abfc;
+            --accent-pink: #f472b6;
+            --accent-green: #34d399;
+            --accent-yellow: #fbbf24;
+            --accent-red: #f87171;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: #334155;
+            --code-bg: #1e293b;
+            --gradient-start: #7dd3fc;
+            --gradient-end: #f0abfc;
+            --body-bg: #0f172a;
+            --navbar-bg: linear-gradient(135deg, rgba(125, 211, 252, 0.2), rgba(240, 171, 252, 0.2));
+            --card-shadow: none;
+        }
+
+        /* 粉蓝白主题 */
+        :root.theme-light {
+            --primary: #7dd3fc;
+            --primary-dark: #0ea5e9;
+            --primary-light: #bae6fd;
+            --secondary: #f0abfc;
+            --accent-pink: #f472b6;
+            --accent-green: #34d399;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --bg-dark: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --code-bg: #f8fafc;
+            --gradient-start: #7dd3fc;
+            --gradient-end: #f0abfc;
+            --body-bg: linear-gradient(135deg, #fef3f8 0%, #f0f9ff 100%);
+            --navbar-bg: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            --card-shadow: 0 4px 20px rgba(125, 211, 252, 0.15);
+        }
+
+        /* 浅色主题下的特殊样式覆盖 */
+        :root.theme-light .agent-card {
+            background: var(--bg-card);
+            border-color: var(--border);
+        }
+
+        :root.theme-light .logo-icon {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        :root.theme-light .navbar {
+            color: #1e293b;
+        }
+
+        :root.theme-light .logo span {
+            color: #1e293b;
+        }
+
+        :root.theme-light .control-btn.active {
+            color: #ffffff;
+        }
+
+        :root.theme-light .log-event {
+            background: var(--bg-card-hover);
+        }
+
+        :root.theme-light .callback-item {
+            background: var(--bg-card-hover);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--body-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* 顶部导航 */
+        .navbar {
+            background: var(--navbar-bg);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--card-shadow);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .navbar-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .navbar-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .control-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .control-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            border-color: transparent;
+            color: var(--bg-dark);
+        }
+
+        .refresh-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        .refresh-indicator.paused {
+            background: var(--text-muted);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* Agent 网络区域 */
+        .agent-network-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--card-shadow);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+        }
+
+        .agent-network {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            position: relative;
+        }
+
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .agent-card {
+            background: var(--bg-dark);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .agent-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--agent-color-1), var(--agent-color-2));
+        }
+
+        .agent-card.rag { --agent-color-1: #f472b6; --agent-color-2: #fb7185; }
+        .agent-card.planner { --agent-color-1: #60a5fa; --agent-color-2: #818cf8; }
+        .agent-card.executor { --agent-color-1: #34d399; --agent-color-2: #4ade80; }
+        .agent-card.summary { --agent-color-1: #fbbf24; --agent-color-2: #fb923c; }
+
+        .agent-card.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 30px rgba(125, 211, 252, 0.3);
+            animation: agent-pulse 2s infinite;
+        }
+
+        @keyframes agent-pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(125, 211, 252, 0.2); }
+            50% { box-shadow: 0 0 40px rgba(125, 211, 252, 0.4); }
+        }
+
+        .agent-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .agent-name {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .agent-state {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            display: inline-block;
+            margin-top: 0.5rem;
+        }
+
+        .agent-state.idle { color: var(--text-muted); }
+        .agent-state.processing { color: var(--primary); background: rgba(125, 211, 252, 0.1); }
+        .agent-state.waiting { color: var(--accent-yellow); background: rgba(251, 191, 36, 0.1); }
+        .agent-state.completed { color: var(--accent-green); background: rgba(52, 211, 153, 0.1); }
+        .agent-state.error { color: var(--accent-red); background: rgba(248, 113, 113, 0.1); }
+
+        .agent-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        /* 统计面板 */
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-value.pink { color: var(--accent-pink); }
+        .stat-value.blue { color: var(--primary); }
+        .stat-value.green { color: var(--accent-green); }
+        .stat-value.red { color: var(--accent-red); }
+        .stat-value.yellow { color: var(--accent-yellow); }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* 日志区域 */
+        .logs-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-dark);
+            transition: background 0.3s ease;
+        }
+
+        .logs-filters {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--bg-card-hover);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .logs-container {
+            height: 500px;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .logs-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            gap: 1rem;
+        }
+
+        .logs-empty-icon {
+            font-size: 3rem;
+            opacity: 0.3;
+        }
+
+        /* 日志条目 */
+        .log-entry {
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .log-entry:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-header {
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .log-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            min-width: 90px;
+        }
+
+        .log-level {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .log-level.system { background: rgba(244, 114, 182, 0.2); color: #f472b6; }
+        .log-level.agent { background: rgba(96, 165, 250, 0.2); color: #60a5fa; }
+        .log-level.llm { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .log-level.tool { background: rgba(52, 211, 153, 0.2); color: #34d399; }
+        .log-level.error { background: rgba(248, 113, 113, 0.2); color: #f87171; }
+        .log-level.callback { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
+
+        .log-agent {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--primary);
+            min-width: 120px;
+        }
+
+        .log-event {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .log-message {
+            flex: 1;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .log-expand-icon {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            transition: transform 0.3s;
+        }
+
+        .log-entry.expanded .log-expand-icon {
+            transform: rotate(180deg);
+        }
+
+        /* 日志详情 */
+        .log-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: var(--bg-dark);
+        }
+
+        .log-entry.expanded .log-details {
+            max-height: 500px;
+        }
+
+        .log-details-content {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 0.75rem;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            min-width: 100px;
+        }
+
+        .detail-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .detail-value.code {
+            background: var(--bg-card);
+            padding: 0.5rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .detail-value.code.scrollable {
+            max-height: 400px;
+        }
+
+        /* 任务进度 */
+        .tasks-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--card-shadow);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .task-item {
+            margin-bottom: 1rem;
+        }
+
+        .task-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .task-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .task-status {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-dark);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        /* 回调记录 */
+        .callbacks-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: var(--card-shadow);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .callback-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+            word-break: break-word;
+            overflow: hidden;
+        }
+
+        .callback-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .callback-arrow {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .callback-from, .callback-to {
+            font-weight: 500;
+        }
+
+        .callback-from { color: var(--accent-pink); }
+        .callback-to { color: var(--primary); }
+
+        .callback-action {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(167, 139, 250, 0.2);
+            color: #a78bfa;
+        }
+
+        .callback-status {
+            margin-left: auto;
+            font-size: 0.75rem;
+        }
+
+        .callback-status.accepted { color: var(--accent-green); }
+        .callback-status.rejected { color: var(--accent-red); }
+        .callback-status.pending { color: var(--accent-yellow); }
+
+        /* 两列布局 */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 1.5rem;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .agent-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stats-section {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .navbar-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 时间戳 */
+        #current-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="logo">
+                <div class="logo-icon">🔮</div>
+                <span>Agent Monitor</span>
+            </div>
+            <div class="navbar-controls">
+                <span id="current-time">⏰ --:--:--</span>
+                <button class="control-btn active" id="auto-refresh-btn" onclick="toggleAutoRefresh()">
+                    <span class="refresh-indicator" id="refresh-indicator"></span>
+                    <span id="refresh-text">自动刷新</span>
+                </button>
+                <select class="control-btn" id="refresh-interval" onchange="updateRefreshInterval()">
+                    <option value="1000">1秒</option>
+                    <option value="2000" selected>2秒</option>
+                    <option value="5000">5秒</option>
+                    <option value="10000">10秒</option>
+                </select>
+                <button class="control-btn" onclick="refreshNow()">
+                    🔄 刷新
+                </button>
+                <button class="control-btn" onclick="clearLogs()">
+                    🗑️ 清空日志
+                </button>
+                <button class="control-btn" onclick="resetSession()">
+                    ⚡ 重置
+                </button>
+                <button class="control-btn" id="theme-toggle-btn" onclick="toggleTheme()">
+                    🌙 深色
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Agent 网络 -->
+        <section class="agent-network-section">
+            <h2 class="section-title">
+                <span>🌐</span>
+                <span>Agent 网络状态</span>
+            </h2>
+            <div class="agent-network">
+                <div class="agent-grid" id="agent-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <span>加载中...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 统计面板 -->
+        <section class="stats-section" id="stats-section">
+            <div class="stat-card">
+                <div class="stat-value blue" id="stat-total">0</div>
+                <div class="stat-label">总任务数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value green" id="stat-completed">0</div>
+                <div class="stat-label">已完成</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value red" id="stat-failed">0</div>
+                <div class="stat-label">失败</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value yellow" id="stat-time">0ms</div>
+                <div class="stat-label">总耗时</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value pink" id="stat-logs">0</div>
+                <div class="stat-label">日志条数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value blue" id="stat-llm-calls">0</div>
+                <div class="stat-label">LLM 调用</div>
+            </div>
+        </section>
+
+        <!-- 主内容区 -->
+        <div class="main-grid">
+            <div class="main-content">
+                <!-- 日志区域 -->
+                <section class="logs-section">
+                    <div class="logs-header">
+                        <h2 class="section-title" style="margin-bottom: 0;">
+                            <span>📜</span>
+                            <span>实时日志</span>
+                            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">
+                                (点击展开详情)
+                            </span>
+                        </h2>
+                        <div class="logs-filters">
+                            <button class="filter-btn active" data-filter="all" onclick="setLogFilter('all')">全部</button>
+                            <button class="filter-btn" data-filter="SYSTEM" onclick="setLogFilter('SYSTEM')">系统</button>
+                            <button class="filter-btn" data-filter="AGENT" onclick="setLogFilter('AGENT')">Agent</button>
+                            <button class="filter-btn" data-filter="LLM" onclick="setLogFilter('LLM')">LLM</button>
+                            <button class="filter-btn" data-filter="TOOL" onclick="setLogFilter('TOOL')">Tool</button>
+                            <button class="filter-btn" data-filter="ERROR" onclick="setLogFilter('ERROR')">错误</button>
+                        </div>
+                    </div>
+                    <div class="logs-container" id="logs-container">
+                        <div class="logs-empty">
+                            <div class="logs-empty-icon">📭</div>
+                            <div>等待日志数据...</div>
+                            <div style="font-size: 0.8rem;">运行 <code>python main.py agent</code> 开始对话</div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="sidebar">
+                <!-- 任务进度 -->
+                <section class="tasks-section">
+                    <h2 class="section-title">
+                        <span>📊</span>
+                        <span>执行进度</span>
+                    </h2>
+                    <div id="tasks-container">
+                        <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem;">
+                            暂无任务
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 回调记录 -->
+                <section class="callbacks-section">
+                    <h2 class="section-title">
+                        <span>🔄</span>
+                        <span>回调记录</span>
+                    </h2>
+                    <div id="callbacks-container">
+                        <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem;">
+                            暂无回调
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 配置
+        const API_BASE = window.location.origin;
+        let autoRefresh = true;
+        let refreshInterval = 2000;
+        let refreshTimer = null;
+        let currentLogFilter = 'all';
+        let allLogs = [];
+        let currentTheme = localStorage.getItem('monitor-theme') || 'dark';
+
+        // 初始化主题
+        function initTheme() {
+            if (currentTheme === 'light') {
+                document.documentElement.classList.add('theme-light');
+                updateThemeButton();
+            }
+        }
+
+        // 切换主题
+        function toggleTheme() {
+            if (currentTheme === 'dark') {
+                currentTheme = 'light';
+                document.documentElement.classList.add('theme-light');
+            } else {
+                currentTheme = 'dark';
+                document.documentElement.classList.remove('theme-light');
+            }
+            localStorage.setItem('monitor-theme', currentTheme);
+            updateThemeButton();
+        }
+
+        // 更新主题按钮显示
+        function updateThemeButton() {
+            const btn = document.getElementById('theme-toggle-btn');
+            if (currentTheme === 'dark') {
+                btn.innerHTML = '🌙 深色';
+            } else {
+                btn.innerHTML = '☀️ 浅色';
+            }
+        }
+
+        // 立即应用主题
+        initTheme();
+
+        // Agent 配置
+        const AGENT_CONFIG = {
+            'RAG_Sakurine': { icon: '🔍', name: 'RAG', cssClass: 'rag', desc: '记忆检索' },
+            'Planner_Lian': { icon: '📋', name: 'Planner', cssClass: 'planner', desc: '任务规划' },
+            'Executor_Ran': { icon: '⚡', name: 'Executor', cssClass: 'executor', desc: '工具执行' },
+            'Summary_Sakurine': { icon: '📝', name: 'Summary', cssClass: 'summary', desc: '结果总结' }
+        };
+
+        // 状态映射
+        const STATE_MAP = {
+            'IDLE': { text: '空闲', cssClass: 'idle' },
+            'PROCESSING': { text: '处理中', cssClass: 'processing' },
+            'WAITING_LLM': { text: '等待LLM', cssClass: 'waiting' },
+            'WAITING_TOOL': { text: '等待工具', cssClass: 'waiting' },
+            'WAITING_CALLBACK': { text: '等待回调', cssClass: 'waiting' },
+            'COMPLETED': { text: '已完成', cssClass: 'completed' },
+            'ERROR': { text: '错误', cssClass: 'error' }
+        };
+
+        // 更新时间
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+            document.getElementById('current-time').textContent = `⏰ ${timeStr}`;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // 切换自动刷新
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            const btn = document.getElementById('auto-refresh-btn');
+            const indicator = document.getElementById('refresh-indicator');
+            const text = document.getElementById('refresh-text');
+            
+            if (autoRefresh) {
+                btn.classList.add('active');
+                indicator.classList.remove('paused');
+                text.textContent = '自动刷新';
+                startAutoRefresh();
+            } else {
+                btn.classList.remove('active');
+                indicator.classList.add('paused');
+                text.textContent = '已暂停';
+                stopAutoRefresh();
+            }
+        }
+
+        // 更新刷新间隔
+        function updateRefreshInterval() {
+            refreshInterval = parseInt(document.getElementById('refresh-interval').value);
+            if (autoRefresh) {
+                stopAutoRefresh();
+                startAutoRefresh();
+            }
+        }
+
+        // 开始自动刷新
+        function startAutoRefresh() {
+            if (refreshTimer) clearInterval(refreshTimer);
+            refreshTimer = setInterval(fetchAllData, refreshInterval);
+        }
+
+        // 停止自动刷新
+        function stopAutoRefresh() {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+            }
+        }
+
+        // 立即刷新
+        function refreshNow() {
+            fetchAllData();
+        }
+
+        // 获取所有数据
+        async function fetchAllData() {
+            try {
+                const response = await fetch(`${API_BASE}/api/state`);
+                const data = await response.json();
+                
+                renderAgents(data.agents || {});
+                renderStats(data.stats || {}, data.logs || []);
+                renderTasks(data.tasks || []);
+                renderCallbacks(data.callbacks || []);
+                
+                allLogs = data.logs || [];
+                renderLogs(filterLogs(allLogs));
+            } catch (error) {
+                console.error('获取数据失败:', error);
+            }
+        }
+
+        // 渲染 Agent 网络
+        function renderAgents(agents) {
+            const container = document.getElementById('agent-grid');
+            let html = '';
+            
+            for (const [agentId, config] of Object.entries(AGENT_CONFIG)) {
+                const agentData = agents[agentId] || {};
+                const state = agentData.state || 'IDLE';
+                const stateInfo = STATE_MAP[state] || STATE_MAP['IDLE'];
+                const isActive = ['PROCESSING', 'WAITING_LLM', 'WAITING_TOOL'].includes(state);
+                const updatedAt = agentData.updated_at ? formatTime(agentData.updated_at) : '--:--:--';
+                
+                html += `
+                    <div class="agent-card ${config.cssClass} ${isActive ? 'active' : ''}">
+                        <div class="agent-icon">${config.icon}</div>
+                        <div class="agent-name">${config.name}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">${config.desc}</div>
+                        <div class="agent-state ${stateInfo.cssClass}">${state}</div>
+                        <div class="agent-time">更新: ${updatedAt}</div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // 渲染统计
+        function renderStats(stats, logs) {
+            document.getElementById('stat-total').textContent = stats.total_tasks || 0;
+            document.getElementById('stat-completed').textContent = stats.completed || 0;
+            document.getElementById('stat-failed').textContent = stats.failed || 0;
+            
+            // 格式化总耗时
+            const timeMs = stats.total_time_ms || 0;
+            let timeDisplay;
+            if (timeMs >= 3600000) {
+                // 超过 1 小时
+                const hours = Math.floor(timeMs / 3600000);
+                const mins = Math.floor((timeMs % 3600000) / 60000);
+                timeDisplay = `${hours}h ${mins}m`;
+            } else if (timeMs >= 60000) {
+                // 超过 1 分钟
+                const mins = Math.floor(timeMs / 60000);
+                const secs = Math.floor((timeMs % 60000) / 1000);
+                timeDisplay = `${mins}m ${secs}s`;
+            } else if (timeMs >= 1000) {
+                // 超过 1 秒
+                timeDisplay = `${(timeMs / 1000).toFixed(1)}s`;
+            } else {
+                timeDisplay = `${timeMs}ms`;
+            }
+            document.getElementById('stat-time').textContent = timeDisplay;
+            document.getElementById('stat-logs').textContent = logs.length;
+            
+            // 统计 LLM 调用次数
+            const llmCalls = logs.filter(l => l.level === 'LLM' && l.event?.includes('REQUEST')).length;
+            document.getElementById('stat-llm-calls').textContent = llmCalls;
+        }
+
+        // 渲染任务
+        function renderTasks(tasks) {
+            const container = document.getElementById('tasks-container');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = `
+                    <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem;">
+                        暂无任务
+                    </div>
+                `;
+                return;
+            }
+            
+            // 检测任务类型
+            const taskTypes = new Set(tasks.map(t => t.type || 'sequential'));
+            const typeLabel = taskTypes.size > 1 ? 'mixed' : Array.from(taskTypes)[0];
+            const typeIcon = typeLabel === 'parallel' ? '⚡' : typeLabel === 'mixed' ? '🔀' : '📋';
+            
+            let html = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding: 0 0.25rem;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">执行模式</span>
+                    <span style="font-size: 0.75rem; color: var(--primary);">${typeIcon} ${typeLabel}</span>
+                </div>
+            `;
+            
+            for (const task of tasks) {
+                const progress = Math.round((task.progress || 0) * 100);
+                const statusColor = task.status === 'completed' ? 'var(--accent-green)' : 
+                                   task.status === 'failed' ? 'var(--accent-red)' : 
+                                   task.status === 'running' ? 'var(--primary)' : 'var(--text-muted)';
+                html += `
+                    <div class="task-item">
+                        <div class="task-header">
+                            <span class="task-name">${task.name || task.task_id}</span>
+                            <span class="task-status" style="color: ${statusColor}">${task.status || 'pending'}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // 渲染回调
+        function renderCallbacks(callbacks) {
+            const container = document.getElementById('callbacks-container');
+            
+            if (callbacks.length === 0) {
+                container.innerHTML = `
+                    <div style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem;">
+                        暂无回调
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            for (const cb of callbacks.slice(-10).reverse()) {
+                const statusClass = (cb.status || 'pending').toLowerCase();
+                html += `
+                    <div class="callback-item">
+                        <div class="callback-arrow">
+                            <span class="callback-from">${cb.source_agent || '?'}</span>
+                            <span style="color: var(--text-muted);">→</span>
+                            <span class="callback-to">${cb.target_agent || '?'}</span>
+                        </div>
+                        <span class="callback-action">${cb.action || 'CALLBACK'}</span>
+                        <span class="callback-status ${statusClass}">${cb.status || 'PENDING'}</span>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // 设置日志过滤器
+        function setLogFilter(filter) {
+            currentLogFilter = filter;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // 重新渲染日志
+            renderLogs(filterLogs(allLogs));
+        }
+
+        // 过滤日志
+        function filterLogs(logs) {
+            if (currentLogFilter === 'all') return logs;
+            return logs.filter(log => log.level === currentLogFilter);
+        }
+
+        // 渲染日志
+        function renderLogs(logs) {
+            const container = document.getElementById('logs-container');
+            
+            if (logs.length === 0) {
+                container.innerHTML = `
+                    <div class="logs-empty">
+                        <div class="logs-empty-icon">📭</div>
+                        <div>暂无${currentLogFilter === 'all' ? '' : currentLogFilter + '类型'}日志</div>
+                        <div style="font-size: 0.8rem;">运行 <code>python main.py agent</code> 开始对话</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            // 倒序显示，最新的在上面
+            for (let i = logs.length - 1; i >= 0; i--) {
+                const log = logs[i];
+                const level = (log.level || 'SYSTEM').toUpperCase();
+                const levelClass = level.toLowerCase();
+                const time = formatTime(log.timestamp);
+                const agent = log.agent_id || '--';
+                const event = log.event || '--';
+                const message = log.message || '';
+                
+                // 详情数据
+                const details = log.details || log.data || {};
+                const hasDetails = Object.keys(details).length > 0 || message.length > 100;
+                
+                html += `
+                    <div class="log-entry" onclick="toggleLogDetails(this)" data-index="${i}">
+                        <div class="log-header">
+                            <span class="log-time">${time}</span>
+                            <span class="log-level ${levelClass}">${level}</span>
+                            <span class="log-agent">${agent}</span>
+                            <span class="log-event">${event}</span>
+                            <span class="log-message">${escapeHtml(message.substring(0, 100))}${message.length > 100 ? '...' : ''}</span>
+                            ${hasDetails ? '<span class="log-expand-icon">▼</span>' : ''}
+                        </div>
+                        <div class="log-details">
+                            <div class="log-details-content">
+                                <div class="detail-row">
+                                    <span class="detail-label">时间戳</span>
+                                    <span class="detail-value">${log.timestamp || '--'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">级别</span>
+                                    <span class="detail-value">${level}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Agent</span>
+                                    <span class="detail-value">${agent}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">事件</span>
+                                    <span class="detail-value">${event}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">完整消息</span>
+                                    <span class="detail-value code">${escapeHtml(message)}</span>
+                                </div>
+                                ${renderLogDetails(details)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // 渲染日志详情
+        function renderLogDetails(details) {
+            if (!details || Object.keys(details).length === 0) return '';
+            
+            let html = '';
+            for (const [key, value] of Object.entries(details)) {
+                let displayValue;
+                if (key === 'messages' && Array.isArray(value)) {
+                    // 特殊处理 LLM 消息数组
+                    displayValue = value.map((m, i) => 
+                        `[${i+1}] ${m.role}: ${m.content_preview || m.content || ''} (${m.content_length || 0} 字符)`
+                    ).join('\n\n');
+                } else if (key === 'arguments' && typeof value === 'object') {
+                    displayValue = JSON.stringify(value, null, 2);
+                } else if (typeof value === 'object') {
+                    displayValue = JSON.stringify(value, null, 2);
+                } else {
+                    displayValue = String(value);
+                }
+                
+                // 根据 key 类型设置不同的显示
+                const isLongContent = displayValue.length > 200;
+                html += `
+                    <div class="detail-row">
+                        <span class="detail-label">${formatDetailLabel(key)}</span>
+                        <span class="detail-value code ${isLongContent ? 'scrollable' : ''}">${escapeHtml(displayValue)}</span>
+                    </div>
+                `;
+            }
+            return html;
+        }
+        
+        // 格式化详情标签
+        function formatDetailLabel(key) {
+            const labelMap = {
+                'model': '模型',
+                'message_count': '消息数',
+                'total_chars': '总字符数',
+                'messages': 'LLM 消息',
+                'content_preview': '内容预览',
+                'content_length': '内容长度',
+                'tokens': 'Token 数',
+                'tool_name': '工具名称',
+                'arguments': '调用参数',
+                'arguments_preview': '参数预览',
+                'result_preview': '结果预览',
+                'result_length': '结果长度',
+                'success': '是否成功',
+                'from_state': '原状态',
+                'to_state': '新状态',
+                'trigger': '触发事件',
+                'title': '标题',
+                'step_index': '步骤序号',
+                'instruction': '指令'
+            };
+            return labelMap[key] || key;
+        }
+
+        // 切换日志详情展开
+        function toggleLogDetails(element) {
+            element.classList.toggle('expanded');
+        }
+
+        // 格式化时间
+        function formatTime(isoString) {
+            if (!isoString) return '--:--:--';
+            try {
+                const date = new Date(isoString);
+                return date.toLocaleTimeString('zh-CN', { hour12: false }) + '.' + 
+                       String(date.getMilliseconds()).padStart(3, '0');
+            } catch {
+                return isoString.substring(11, 23);
+            }
+        }
+
+        // HTML 转义
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 清空日志
+        async function clearLogs() {
+            if (!confirm('确定要清空所有日志吗？')) return;
+            
+            try {
+                await fetch(`${API_BASE}/api/clear/logs`, { method: 'POST' });
+                allLogs = [];
+                renderLogs([]);
+            } catch (error) {
+                console.error('清空日志失败:', error);
+                alert('清空日志失败');
+            }
+        }
+
+        // 重置会话
+        async function resetSession() {
+            if (!confirm('确定要重置整个会话吗？这将清空所有状态和日志。')) return;
+            
+            try {
+                await fetch(`${API_BASE}/api/reset`, { method: 'POST' });
+                fetchAllData();
+            } catch (error) {
+                console.error('重置会话失败:', error);
+                alert('重置会话失败');
+            }
+        }
+
+        // 初始化
+        async function init() {
+            await fetchAllData();
+            startAutoRefresh();
+        }
+
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', () => {
+            stopAutoRefresh();
+        });
+
+        init();
+    </script>
+</body>
+</html>

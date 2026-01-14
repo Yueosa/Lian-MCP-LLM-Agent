@@ -1,54 +1,23 @@
 import json
-from typing import List, Dict
+from typing import List, Dict, Optional
 from .base import BaseAgent
+from .prompts import PLANNER_SYSTEM_PROMPT
 from mylib.lian_orm.models import Task, TaskStep, TasksStatus, TaskStepsStatus, MemoryLogMemoryType
 from mylib.kit.Loutput import Loutput, FontColor8
 
+
 class PlannerAgent(BaseAgent):
     """
-    任务步骤规划专家
+    任务步骤规划专家 (星盘占卜师)
     负责将用户请求拆解为可执行的步骤
     """
     
-    def __init__(self, name: str = "Planner_Lian"):
+    def __init__(self, name: str = "Planner_Lian", tools: Optional[List[Dict]] = None):
         super().__init__(name)
         self.lo = Loutput()
-        self.system_prompt = """你是一个专业的任务规划专家，是 Lian-MCP-LLM-Agent 平台的一部分。
-你的职责是 Planner Agent，负责将用户的复杂请求拆解为一系列逻辑严密、可执行的步骤，供 Executor Agent 执行。
-你与 Executor Agent（执行者）、RAG Agent（记忆检索者）和 Summary Agent（总结者）协同工作。
-
-【输入说明】
-你将接收到用户的请求以及 RAG 提供的背景信息。
-请务必利用 RAG 中的背景信息（如过往经验、偏好、相关知识）来优化你的计划。
-
-重要原则：
-1. 你的计划将由一个自动化的执行器（Executor）执行，它无法与用户进行交互。
-2. 严禁生成需要"询问用户"、"等待用户输入"或"确认用户意图"的步骤。
-3. 如果信息不足，请在计划的第一步尝试使用工具获取信息，或者直接生成一个步骤说明"由于缺少XX信息，无法继续执行"。
-4. 步骤应当具体、明确，可以直接映射到工具调用或代码执行。
-5. 绝对不要输出任何闲聊、问候或解释性文字。只输出 JSON。
-
-输出必须是严格的 JSON 格式，包含一个 steps 数组，每个 step 包含：
-- step_index: 步骤序号
-- instruction: 具体指令
-- expected_output: 预期输出
-
-示例格式：
-{
-    "steps": [
-        {
-            "step_index": 1,
-            "instruction": "搜索关于 Python 3.13 的新特性",
-            "expected_output": "Python 3.13 特性列表"
-        },
-        {
-            "step_index": 2,
-            "instruction": "总结这些特性",
-            "expected_output": "特性总结文本"
-        }
-    ]
-}
-"""
+        self.tools = tools or []
+        # 使用新的增强提示词
+        self.system_prompt = PLANNER_SYSTEM_PROMPT
 
     async def a_chat(self, message: str, history: List[Dict]) -> Dict:
         """
@@ -56,7 +25,21 @@ class PlannerAgent(BaseAgent):
         返回解析后的 JSON 对象
         """
         self.lo.lput(f"[{self.name}] Generating plan...", font_color=FontColor8.MAGENTA)
-        content = await super().a_chat(message, history, memory_type=MemoryLogMemoryType.PLAN)
+        
+        # 构建包含工具列表的请求
+        tools_info = ""
+        if self.tools:
+            tool_names = [t.get("name", "unknown") for t in self.tools]
+            tools_info = f"\n\n【重要】可用工具列表（你的规划必须只使用这些工具）:\n{', '.join(tool_names)}\n\n工具详情:\n"
+            for tool in self.tools:
+                tools_info += f"- {tool.get('name')}: {tool.get('description', 'No description')[:100]}\n"
+        else:
+            tools_info = "\n\n【注意】未检测到可用工具，请生成纯文本回答或建议用户启动 MCP Server。\n"
+        
+        enriched_message = message + tools_info
+        # 【修复】Planner 不使用对话历史，避免被其他 Agent 的人设污染
+        # Planner 只负责生成 JSON 格式的执行计划，应保持客观中立
+        content = await super().a_chat(enriched_message, [], memory_type=MemoryLogMemoryType.PLAN)
         
         result = {}
         # 尝试解析 JSON
