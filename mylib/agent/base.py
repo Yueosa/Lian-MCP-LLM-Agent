@@ -116,6 +116,18 @@ class BaseAgent:
                 except Exception as e:
                     if attempt < max_retries - 1:
                         print(f"[{self.name}] LLM Call failed (Attempt {attempt+1}/{max_retries}): {e}. Retrying in {retry_delay}s...")
+                        if "400" in str(e):
+                            try: 
+                                import json
+                                # Force print to standard output
+                                print(f"\n\n[{self.name}] !!! CRITICAL DEBUG INFO !!!", flush=True)
+                                if hasattr(e, 'response') and e.response is not None:
+                                    print(f"API RESPONSE TEXT: {e.response.text}", flush=True)
+                                print(f"Messages Payload Length: {len(messages)}", flush=True)
+                                print(f"Messages Dump: {json.dumps(messages, indent=2, ensure_ascii=False)}", flush=True)
+                                print(f"[{self.name}] !!! END DEBUG INFO !!!\n\n", flush=True)
+                            except Exception as debug_err:
+                                print(f"[{self.name}] Failed to print debug info: {debug_err}", flush=True)
                         await asyncio.sleep(retry_delay)
                         retry_delay *= 2
                     else:
@@ -149,14 +161,21 @@ class BaseAgent:
         messages = []
         # 添加系统提示词
         if hasattr(self, "system_prompt"):
-            messages.append({"role": "system", "content": self.system_prompt})
+            # Ensure system prompt is string
+            sys_content = str(self.system_prompt) if self.system_prompt else ""
+            if sys_content:
+                messages.append({"role": "system", "content": sys_content})
         
         # 添加历史记录
         for msg in history:
-            messages.append(msg)
+            # Cleanse history messages
+            r = msg.get("role", "user")
+            c = msg.get("content", "")
+            if c is None: c = ""
+            messages.append({"role": str(r), "content": str(c)})
             
         # 添加当前消息
-        messages.append({"role": role, "content": message})
+        messages.append({"role": role, "content": str(message or "Please continue.")})
         return messages
 
     def save_memory(self, role: MemoryLogRole, content: str, memory_type: MemoryLogMemoryType = MemoryLogMemoryType.CONVERSATION):

@@ -78,10 +78,14 @@ TOOL_CALL_END
                 self.sql.task_steps.update(step_id, status=TaskStepsStatus.RUNNING)
             except Exception as e:
                 self.lo.lput(f"[{self.name}] Failed to update step status: {e}", font_color="red")
-
+        
+        # Ensure message is not empty to avoid 400 Bad Request
+        if not message or not message.strip():
+            message = "Please execute the current step."
+        
         current_history = history.copy()
-        # Executor 接收的是系统下发的指令，而非用户直接对话，因此 role 设为 system
-        context = self._construct_context(message, current_history, role="system")
+        # Executor 接收的是系统下发的指令，虽然是系统指令，但为了符合 API 规范（避免多个 system 消息），这里 role 设为 user
+        context = self._construct_context(message, current_history, role="user")
         
         final_answer = "Error: Maximum tool call rounds reached."
         
@@ -153,8 +157,8 @@ TOOL_CALL_END
                         })
                     
                     result_msg = f"Tool Results: {json.dumps(tool_results, ensure_ascii=False)}"
-                    # 工具执行结果，role 设为 tool
-                    context.append({"role": "tool", "content": result_msg})
+                    # 工具执行结果，role 设为 user，模拟用户（或系统）反馈的 Observation，避免使用 API 不支持的 "tool" role
+                    context.append({"role": "user", "content": result_msg})
                     continue
                     
                 except Exception as e:

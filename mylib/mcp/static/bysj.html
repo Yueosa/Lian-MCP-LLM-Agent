@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Server - 毕业设计答辩展示</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #7dd3fc;
+            --primary-dark: #0ea5e9;
+            --primary-light: #bae6fd;
+            --secondary: #f0abfc;
+            --warning: #fda4af;
+            --danger: #fca5a5;
+            --bg-dark: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --code-bg: #f8fafc;
+            --gradient-start: #7dd3fc;
+            --gradient-end: #f0abfc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #fef3f8 0%, #f0f9ff 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* 顶部导航 */
+        .navbar {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(125, 211, 252, 0.25);
+        }
+
+        .navbar-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .navbar-info {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.9rem;
+            color: #1e293b;
+        }
+
+        .navbar-info span {
+            opacity: 0.9;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* 服务器状态卡片 */
+        .server-status {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .server-status::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #7dd3fc, #f0abfc);
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-badge.online {
+            background: rgba(240, 171, 252, 0.2);
+            color: #c026d3;
+            border: 1px solid rgba(240, 171, 252, 0.5);
+        }
+
+        .status-badge.offline {
+            background: rgba(252, 165, 165, 0.2);
+            color: #dc2626;
+            border: 1px solid rgba(252, 165, 165, 0.5);
+        }
+
+        .pulse {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .status-item {
+            background: var(--code-bg);
+            padding: 1.25rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .status-item-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-item-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 架构说明 */
+        .architecture-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .architecture-diagram {
+            padding: 2rem;
+        }
+
+        .arch-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .arch-layer {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .arch-box {
+            flex: 1;
+            background: #ffffff;
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(125, 211, 252, 0.1);
+        }
+
+        .arch-box-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            color: var(--primary-dark);
+        }
+
+        .arch-box-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .arch-box-items li {
+            list-style: none;
+            padding-left: 1rem;
+            position: relative;
+        }
+
+        .arch-box-items li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+        }
+
+        .arch-arrow {
+            text-align: center;
+            color: var(--primary);
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .arch-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .arch-small-box {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 1px 4px rgba(125, 211, 252, 0.08);
+        }
+
+        .arch-small-title {
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: #f472b6;
+        }
+
+        .arch-small-items {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* 工具分类区 */
+        .tools-section {
+            margin-bottom: 2rem;
+        }
+
+        .tools-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .tools-count {
+            background: var(--bg-card);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .tool-category {
+            margin-bottom: 1.5rem;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 1rem 1.5rem;
+            background: var(--bg-card);
+            border-radius: 12px 12px 0 0;
+            border: 1px solid var(--border);
+            border-bottom: none;
+        }
+
+        .category-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .category-icon.file { background: rgba(125, 211, 252, 0.25); }
+        .category-icon.dir { background: rgba(253, 164, 175, 0.25); }
+        .category-icon.web { background: rgba(240, 171, 252, 0.25); }
+
+        .category-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .category-count {
+            margin-left: auto;
+            background: var(--bg-dark);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .tools-grid {
+            display: grid;
+            gap: 0;
+            border: 1px solid var(--border);
+            border-radius: 0 0 12px 12px;
+            overflow: hidden;
+        }
+
+        /* 工具卡片 */
+        .tool-card {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            transition: all 0.2s ease;
+        }
+
+        .tool-card:last-child {
+            border-bottom: none;
+        }
+
+        .tool-card:hover {
+            background: var(--bg-card-hover);
+            box-shadow: 0 2px 8px rgba(125, 211, 252, 0.1);
+        }
+
+        .tool-header {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+        }
+
+        .tool-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+        }
+
+        .tool-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: var(--primary-dark);
+            font-size: 0.95rem;
+        }
+
+        .tool-desc {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .tool-badges {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+            margin-right: 1rem;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge.async {
+            background: rgba(240, 171, 252, 0.2);
+            color: #c026d3;
+        }
+
+        .badge.sync {
+            background: rgba(125, 211, 252, 0.2);
+            color: #0284c7;
+        }
+
+        .expand-icon {
+            color: var(--text-muted);
+            transition: transform 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .tool-card.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        /* 工具详情 */
+        .tool-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+            background: var(--code-bg);
+        }
+
+        .tool-card.expanded .tool-details {
+            max-height: 1000px;
+        }
+
+        .tool-details-content {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .detail-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .params-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        .params-table th,
+        .params-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .params-table th {
+            background: var(--bg-card);
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .params-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .param-name {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--primary-dark);
+        }
+
+        .param-type {
+            font-family: 'JetBrains Mono', monospace;
+            color: #f472b6;
+            font-size: 0.8rem;
+        }
+
+        .param-required {
+            color: #f43f5e;
+            font-size: 0.75rem;
+        }
+
+        .param-optional {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .meta-item {
+            background: var(--bg-card);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .meta-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            word-break: break-all;
+        }
+
+        /* 日志查看器 */
+        .logs-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .logs-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--primary);
+            color: var(--primary-dark);
+        }
+
+        .btn.active {
+            background: linear-gradient(135deg, #7dd3fc, #f0abfc);
+            border-color: var(--primary);
+            color: #ffffff;
+        }
+
+        .logs-container {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            height: 800px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-entry.info {
+            color: var(--text-secondary);
+        }
+
+        .log-entry.success {
+            color: #c026d3;
+        }
+
+        .log-entry.error {
+            color: #dc2626;
+        }
+
+        .log-entry.warning {
+            color: #f472b6;
+        }
+
+        .log-time {
+            color: var(--text-muted);
+            margin-right: 0.5rem;
+        }
+
+        .logs-empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+        }
+
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            border-top: 1px solid var(--border);
+            margin-top: 2rem;
+        }
+
+        .footer a {
+            color: var(--primary-light);
+            text-decoration: none;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .navbar-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .navbar-info {
+                gap: 1rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .tool-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .tool-badges {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="logo">
+                <div class="logo-icon">🔌</div>
+                <span>MCP Server</span>
+            </div>
+            <div class="navbar-info">
+                <span>📚 毕业设计答辩展示</span>
+                <span>👤 Lian-MCP-LLM-Agent</span>
+                <span id="current-time">⏰ --:--:--</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 服务器状态 -->
+        <section class="server-status">
+            <div class="status-header">
+                <h2 class="status-title">
+                    <span>🖥️ MCP 服务器状态</span>
+                </h2>
+                <div id="status-badge" class="status-badge offline">
+                    <span class="pulse"></span>
+                    <span id="status-text">检测中...</span>
+                </div>
+            </div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-item-label">服务地址</div>
+                    <div class="status-item-value" id="server-host">--</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-item-label">服务端口</div>
+                    <div class="status-item-value" id="server-port">--</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-item-label">协议版本</div>
+                    <div class="status-item-value" id="server-version">--</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-item-label">工具总数</div>
+                    <div class="status-item-value" id="tools-count">--</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 架构说明 -->
+        <section class="architecture-section">
+            <h2 class="section-title">
+                <span>🏗️</span>
+                <span>MCP 架构设计</span>
+            </h2>
+            <div class="architecture-diagram">
+                <div class="arch-flow">
+                    <!-- 第一层：FastAPI Routes -->
+                    <div class="arch-layer">
+                        <div class="arch-box" style="border-color: #3b82f6;">
+                            <div class="arch-box-title">📡 FastAPI Routes</div>
+                            <div class="arch-box-items">
+                                <li>GET / - 服务状态</li>
+                                <li>GET /tools - 工具列表</li>
+                                <li>GET /tools/{name} - 工具详情</li>
+                                <li>POST /tools/{name}/call - 调用工具</li>
+                                <li>POST /tools/reload - 热重载</li>
+                                <li>GET /bysj - 答辩展示页</li>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="arch-arrow">↓</div>
+                    
+                    <!-- 第二层：ToolLoader -->
+                    <div class="arch-layer">
+                        <div class="arch-box" style="border-color: #10b981;">
+                            <div class="arch-box-title">⚙️ ToolLoader (Singleton)</div>
+                            <div class="arch-box-items">
+                                <li>discover() - 自动发现工具</li>
+                                <li>get_tools_list() - 获取工具列表</li>
+                                <li>get_tool_meta() - 获取工具元数据</li>
+                                <li>call() - 调用工具方法</li>
+                                <li>reload() - 热重载工具</li>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="arch-arrow">↓</div>
+                    
+                    <!-- 第三层：TOOL_METADATA -->
+                    <div class="arch-layer">
+                        <div class="arch-box" style="border-color: #f59e0b;">
+                            <div class="arch-box-title">📋 TOOL_METADATA (声明式元数据)</div>
+                            <div class="arch-box-items">
+                                <li>name - 工具名称</li>
+                                <li>description - 工具描述</li>
+                                <li>parameters - 参数定义</li>
+                                <li>module - 模块路径</li>
+                                <li>class_name - 类名</li>
+                                <li>method - 方法名</li>
+                                <li>async_method - 是否异步</li>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="arch-arrow">↓</div>
+                    
+                    <!-- 第四层：Tool Implementations -->
+                    <div class="arch-row">
+                        <div class="arch-small-box" style="border-left: 3px solid #3b82f6;">
+                            <div class="arch-small-title">📄 FileTool</div>
+                            <div class="arch-small-items">
+                                read, write, append<br>
+                                delete, exists, info<br>
+                                copy, move, search<br>
+                                replace
+                            </div>
+                        </div>
+                        <div class="arch-small-box" style="border-left: 3px solid #f59e0b;">
+                            <div class="arch-small-title">📁 DirTool</div>
+                            <div class="arch-small-items">
+                                create, delete, list<br>
+                                exists, info, tree<br>
+                                copy, move
+                            </div>
+                        </div>
+                        <div class="arch-small-box" style="border-left: 3px solid #8b5cf6;">
+                            <div class="arch-small-title">🌐 WebTool</div>
+                            <div class="arch-small-items">
+                                fetch, check_status<br>
+                                extract_elements
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 实时日志 -->
+        <section class="logs-section">
+            <div class="logs-header">
+                <h2 class="section-title">
+                    <span>📜</span>
+                    <span>服务器日志</span>
+                </h2>
+                <div class="logs-controls">
+                    <button class="btn active" id="auto-scroll-btn" onclick="toggleAutoScroll()">
+                        📌 自动滚动
+                    </button>
+                    <button class="btn active" id="hide-logs-btn" onclick="toggleHideLogs()">
+                        🚫 屏蔽 /logs 200
+                    </button>
+                    <button class="btn active" id="hide-root-btn" onclick="toggleHideRoot()">
+                        🚫 屏蔽 / 200
+                    </button>
+                    <button class="btn" onclick="clearLogs()">
+                        🗑️ 清空
+                    </button>
+                    <button class="btn" onclick="refreshLogs()">
+                        🔄 刷新
+                    </button>
+                </div>
+            </div>
+            <div class="logs-container" id="logs-container">
+                <div class="logs-empty">等待日志数据...</div>
+            </div>
+        </section>
+
+        <!-- 工具列表 -->
+        <section class="tools-section">
+            <div class="tools-header">
+                <h2 class="section-title">
+                    <span>🛠️</span>
+                    <span>可用工具列表</span>
+                </h2>
+                <div class="tools-count">
+                    共 <span id="total-tools">0</span> 个工具
+                </div>
+            </div>
+
+            <div id="tools-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>正在加载工具列表...</span>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <p>Model Context Protocol (MCP) Server - Lian-MCP-LLM-Agent</p>
+        <p style="margin-top: 0.5rem;">
+            <a href="/" target="_blank">API 根路径</a> · 
+            <a href="/tools" target="_blank">工具列表 API</a> · 
+            <a href="/help" target="_blank">帮助文档</a>
+        </p>
+    </footer>
+
+    <script>
+        // 配置
+        const API_BASE = window.location.origin;
+        
+        // 日志相关状态
+        let autoScroll = true;
+        let logRefreshInterval = null;
+        // 是否屏蔽 /logs 的 200 响应（默认开启，避免刷屏）
+        let hideLogs200 = true;
+        // 是否屏蔽 根路由 "/" 的 200 响应（默认开启，避免刷屏）
+        let hideRoot200 = true;
+        
+        // 工具分类配置
+        const TOOL_CATEGORIES = {
+            'file': {
+                name: '📄 文件工具 (File Tool)',
+                icon: 'file',
+                prefix: 'file_',
+                description: '文件读写、信息查询、搜索替换等操作'
+            },
+            'dir': {
+                name: '📁 目录工具 (Dir Tool)',
+                icon: 'dir',
+                prefix: 'dir_',
+                description: '目录创建、遍历、树形结构展示等操作'
+            },
+            'web': {
+                name: '🌐 网页工具 (Web Tool)',
+                icon: 'web',
+                prefix: 'web_',
+                description: '网页抓取、内容提取、状态检查等操作'
+            }
+        };
+
+        // 更新时间
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+            document.getElementById('current-time').textContent = `⏰ ${timeStr}`;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // 检查服务器状态
+        async function checkServerStatus() {
+            const badge = document.getElementById('status-badge');
+            const statusText = document.getElementById('status-text');
+            
+            try {
+                const response = await fetch(`${API_BASE}/`);
+                const data = await response.json();
+                
+                badge.classList.remove('offline');
+                badge.classList.add('online');
+                statusText.textContent = '运行中';
+                
+                // 更新服务器信息
+                document.getElementById('server-host').textContent = window.location.hostname;
+                document.getElementById('server-port').textContent = window.location.port || '80';
+                document.getElementById('server-version').textContent = data.version || '1.0.0';
+                document.getElementById('tools-count').textContent = data.tools_count || '0';
+                
+                return true;
+            } catch (error) {
+                badge.classList.remove('online');
+                badge.classList.add('offline');
+                statusText.textContent = '离线';
+                return false;
+            }
+        }
+
+        // 加载工具列表
+        async function loadTools() {
+            const container = document.getElementById('tools-container');
+            
+            try {
+                const response = await fetch(`${API_BASE}/tools`);
+                const data = await response.json();
+                const tools = data.tools || [];
+                
+                document.getElementById('total-tools').textContent = tools.length;
+                
+                // 按分类组织工具
+                const categorizedTools = {};
+                
+                for (const category of Object.keys(TOOL_CATEGORIES)) {
+                    categorizedTools[category] = [];
+                }
+                categorizedTools['other'] = [];
+                
+                for (const tool of tools) {
+                    let assigned = false;
+                    for (const [category, config] of Object.entries(TOOL_CATEGORIES)) {
+                        if (tool.name.startsWith(config.prefix)) {
+                            categorizedTools[category].push(tool);
+                            assigned = true;
+                            break;
+                        }
+                    }
+                    if (!assigned) {
+                        categorizedTools['other'].push(tool);
+                    }
+                }
+                
+                // 获取每个工具的详细信息
+                const toolDetails = {};
+                for (const tool of tools) {
+                    try {
+                        const detailResponse = await fetch(`${API_BASE}/tools/${tool.name}`);
+                        const detailData = await detailResponse.json();
+                        toolDetails[tool.name] = detailData.tool;
+                    } catch (e) {
+                        toolDetails[tool.name] = tool;
+                    }
+                }
+                
+                // 渲染工具列表
+                let html = '';
+                
+                for (const [category, config] of Object.entries(TOOL_CATEGORIES)) {
+                    const categoryTools = categorizedTools[category];
+                    if (categoryTools.length === 0) continue;
+                    
+                    html += `
+                        <div class="tool-category">
+                            <div class="category-header">
+                                <div class="category-icon ${config.icon}">
+                                    ${config.name.split(' ')[0]}
+                                </div>
+                                <div>
+                                    <div class="category-name">${config.name.substring(2)}</div>
+                                </div>
+                                <div class="category-count">${categoryTools.length} 个工具</div>
+                            </div>
+                            <div class="tools-grid">
+                                ${categoryTools.map(tool => renderToolCard(tool, toolDetails[tool.name])).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 其他工具
+                if (categorizedTools['other'].length > 0) {
+                    html += `
+                        <div class="tool-category">
+                            <div class="category-header">
+                                <div class="category-icon" style="background: rgba(100, 116, 139, 0.2);">🔧</div>
+                                <div>
+                                    <div class="category-name">其他工具 (Other Tools)</div>
+                                </div>
+                                <div class="category-count">${categorizedTools['other'].length} 个工具</div>
+                            </div>
+                            <div class="tools-grid">
+                                ${categorizedTools['other'].map(tool => renderToolCard(tool, toolDetails[tool.name])).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                container.innerHTML = html;
+                
+                // 绑定展开/收起事件
+                document.querySelectorAll('.tool-header').forEach(header => {
+                    header.addEventListener('click', () => {
+                        const card = header.closest('.tool-card');
+                        card.classList.toggle('expanded');
+                    });
+                });
+                
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="loading">
+                        <span style="color: var(--danger);">❌ 加载失败: ${error.message}</span>
+                        <p style="margin-top: 1rem; color: var(--text-muted);">请确保 MCP Server 正在运行</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 渲染工具卡片
+        function renderToolCard(tool, details) {
+            const isAsync = details?.async_method || false;
+            const params = tool.parameters?.properties || {};
+            const required = tool.parameters?.required || [];
+            
+            return `
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <div class="tool-info">
+                            <span class="tool-name">${tool.name}</span>
+                            <span class="tool-desc">${tool.description || '暂无描述'}</span>
+                        </div>
+                        <div class="tool-badges">
+                            <span class="badge ${isAsync ? 'async' : 'sync'}">${isAsync ? 'async' : 'sync'}</span>
+                        </div>
+                        <span class="expand-icon">▼</span>
+                    </div>
+                    <div class="tool-details">
+                        <div class="tool-details-content">
+                            ${renderParameters(params, required)}
+                            ${renderMetadata(details)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染参数表格
+        function renderParameters(params, required) {
+            const paramEntries = Object.entries(params);
+            if (paramEntries.length === 0) {
+                return `
+                    <div class="detail-section">
+                        <div class="detail-title">📝 参数列表</div>
+                        <p style="color: var(--text-muted); font-size: 0.875rem;">该工具无需参数</p>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="detail-section">
+                    <div class="detail-title">📝 参数列表</div>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>参数名</th>
+                                <th>类型</th>
+                                <th>必填</th>
+                                <th>说明</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${paramEntries.map(([name, info]) => `
+                                <tr>
+                                    <td class="param-name">${name}</td>
+                                    <td class="param-type">${info.type || 'any'}</td>
+                                    <td>
+                                        ${required.includes(name) 
+                                            ? '<span class="param-required">✓ 必填</span>' 
+                                            : '<span class="param-optional">可选</span>'}
+                                    </td>
+                                    <td>${info.description || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // 渲染元数据
+        function renderMetadata(details) {
+            if (!details) return '';
+            
+            return `
+                <div class="detail-section">
+                    <div class="detail-title">⚙️ 工具元数据</div>
+                    <div class="meta-grid">
+                        <div class="meta-item">
+                            <div class="meta-label">模块路径</div>
+                            <div class="meta-value">${details.module || '-'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">类名</div>
+                            <div class="meta-value">${details.class_name || '-'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">方法名</div>
+                            <div class="meta-value">${details.method || '-'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">异步方法</div>
+                            <div class="meta-value">${details.async_method ? '是 (async)' : '否 (sync)'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 日志控制函数
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            const btn = document.getElementById('auto-scroll-btn');
+            if (autoScroll) {
+                btn.classList.add('active');
+                btn.textContent = '📌 自动滚动';
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = '📌 手动滚动';
+            }
+        }
+
+        function clearLogs() {
+            const container = document.getElementById('logs-container');
+            container.innerHTML = '<div class="logs-empty">日志已清空</div>';
+        }
+
+        async function refreshLogs() {
+            await loadLogs();
+        }
+
+        // 加载日志
+        async function loadLogs() {
+            const container = document.getElementById('logs-container');
+            
+            try {
+                const response = await fetch(`${API_BASE}/logs`);
+                const data = await response.json();
+                const logs = data.logs || [];
+                
+                if (logs.length === 0) {
+                    container.innerHTML = '<div class="logs-empty">暂无日志</div>';
+                    return;
+                }
+                
+                // 渲染日志
+                let html = '';
+                for (const log of logs) {
+                    // 如果启用了屏蔽 /logs 的 200 响应，则跳过这些条目
+                    const msg = (log.message || '').toString();
+                    if (hideLogs200) {
+                        if (msg.includes('GET /logs') && (msg.includes(' 200') || msg.includes('200 OK'))) {
+                            continue;
+                        }
+                    }
+                    // 如果启用了屏蔽根路由 / 的 200 响应，则跳过类似 "GET / HTTP/1.1" 并带 200 的条目
+                    if (hideRoot200) {
+                        if (msg.includes('GET / HTTP/1.1') && (msg.includes(' 200') || msg.includes('200 OK'))) {
+                            continue;
+                        }
+                    }
+                    const logClass = getLogClass(log.message);
+                    const time = new Date(log.timestamp).toLocaleTimeString('zh-CN', { hour12: false });
+                    html += `<div class="log-entry ${logClass}"><span class="log-time">[${time}]</span>${escapeHtml(log.message)}</div>`;
+                }
+                
+                container.innerHTML = html;
+                
+                // 自动滚动到底部
+                if (autoScroll) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            } catch (error) {
+                // 静默失败，不影响其他功能
+                if (container.innerHTML.includes('等待日志数据')) {
+                    container.innerHTML = '<div class="logs-empty">日志加载失败，服务器可能未实现 /logs 接口</div>';
+                }
+            }
+        }
+
+        // 根据日志内容判断类型
+        function getLogClass(message) {
+            if (message.includes('ERROR') || message.includes('404') || message.includes('500')) {
+                return 'error';
+            }
+            if (message.includes('WARNING') || message.includes('WARN')) {
+                return 'warning';
+            }
+            if (message.includes('200 OK') || message.includes('startup complete')) {
+                return 'success';
+            }
+            return 'info';
+        }
+
+        // 切换是否屏蔽 /logs 的 200 响应
+        function toggleHideLogs() {
+            hideLogs200 = !hideLogs200;
+            const btn = document.getElementById('hide-logs-btn');
+            if (hideLogs200) {
+                btn.classList.add('active');
+                btn.textContent = '🚫 屏蔽 /logs 200';
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = '✅ 显示 /logs 200';
+            }
+        }
+
+        // 切换是否屏蔽 根路由 / 的 200 响应
+        function toggleHideRoot() {
+            hideRoot200 = !hideRoot200;
+            const btn = document.getElementById('hide-root-btn');
+            if (hideRoot200) {
+                btn.classList.add('active');
+                btn.textContent = '🚫 屏蔽 / 200';
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = '✅ 显示 / 200';
+            }
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 初始化
+        async function init() {
+            await checkServerStatus();
+            await loadTools();
+            await loadLogs();
+            
+            // 定期检查服务器状态
+            setInterval(checkServerStatus, 30000);
+            
+            // 定期刷新日志（每2秒）
+            logRefreshInterval = setInterval(loadLogs, 2000);
+        }
+
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', () => {
+            if (logRefreshInterval) {
+                clearInterval(logRefreshInterval);
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>
