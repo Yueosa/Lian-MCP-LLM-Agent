@@ -6,6 +6,12 @@ By - Lian - 2025
 
 [![DeepWiki](https://img.shields.io/badge/DeepWiki-喵咪百科%20Docs-blueviolet?logo=bookstack&logoColor=white)](https://deepwiki.com/Yueosa/Lian-MCP-LLM-Agent)
 
+## 在毕业设计结束之后的故事
+
+本项目的思路经验和代码用于新项目 `lianclaw` 的开发, 目前新项目已在本地稳定运行
+
+关于新项目的源码暂时无法进行开源~ 
+
 ---
 
 ## 🚀 快速开始 (Quick Start)
